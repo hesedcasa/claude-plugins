@@ -1,0 +1,7 @@
+{
+  "name": "sql",
+  "description": "Execute SQL queries on MySQL and PostgreSQL databases with built-in safety features",
+  "author": {
+    "name": "Hesed"
+  }
+}

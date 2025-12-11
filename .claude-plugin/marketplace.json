@@ -1,0 +1,46 @@
+{
+  "name": "hesed-plugins",
+  "version": "0.0.0",
+  "owner": {
+    "name": "Hesed"
+  },
+  "description": "A collection of Claude plugins for common productivity and development workflows",
+  "plugins": [
+    {
+      "name": "google-chat",
+      "source": "./plugins/google-chat",
+      "description": "Send messages to Google Chat spaces and reply to threads",
+      "author": {
+        "name": "Hesed"
+      },
+      "category": "skills"
+    },
+    {
+      "name": "jira",
+      "source": "./plugins/jira",
+      "description": "Query, create, update, and manage Jira issues using JQL",
+      "author": {
+        "name": "Hesed"
+      },
+      "category": "skills"
+    },
+    {
+      "name": "sql",
+      "source": "./plugins/sql",
+      "description": "Execute SQL queries on MySQL and PostgreSQL databases with built-in safety features",
+      "author": {
+        "name": "Hesed"
+      },
+      "category": "skills"
+    },
+    {
+      "name": "context7",
+      "source": "./plugins/context7",
+      "description": "Search and retrieve up-to-date documentation from Context7",
+      "author": {
+        "name": "Hesed"
+      },
+      "category": "skills"
+    }
+  ]
+}

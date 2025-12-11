@@ -1,0 +1,7 @@
+{
+  "name": "google-chat",
+  "description": "Send messages to Google Chat spaces and reply to threads",
+  "author": {
+    "name": "Hesed"
+  }
+}

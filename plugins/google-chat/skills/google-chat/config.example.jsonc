@@ -1,0 +1,7 @@
+{
+  "key": "<api_key>",
+  "tokens": {
+    "<space_id1>": "<space_token1>", // deployment
+    "<space_id2>": "<space_token2>" // sentry-alerts
+  }
+}

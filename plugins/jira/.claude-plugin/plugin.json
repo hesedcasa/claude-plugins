@@ -1,0 +1,7 @@
+{
+  "name": "jira",
+  "description": "Query, create, update, and manage Jira issues using JQL",
+  "author": {
+    "name": "Hesed"
+  }
+}
