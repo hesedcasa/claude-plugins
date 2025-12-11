@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.0 (2025-12-11)
+
+
+### 🎉 Features
+
+* initial commit ([b27a5f4](https://github.com/hesedcasa/claude-plugins/commit/b27a5f4690d4c98ab16b6072561ebf49a4c8ebf4))
+
+## Changelog
+
 
 ## Changelog
 
