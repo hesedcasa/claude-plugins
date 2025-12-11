@@ -4,11 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a collection of custom Claude Code plugins (skills) that extend Claude's capabilities with external integrations. It contains 4 plugins:
+This is a collection of custom Claude Code plugins (skills) that extend Claude's capabilities with external integrations. It contains 5 plugins:
 
 - **context7** - Search and retrieve documentation from Context7
 - **google-chat** - Send messages to Google Chat spaces
 - **jira** - Query, create, update, and manage Jira issues
+- **confluence** - Interact with Confluence pages, spaces, and comments
 - **sql** - Execute SQL queries on MySQL and PostgreSQL databases
 
 ## Repository Structure
@@ -40,6 +41,12 @@ claude-plugins/
 │   │       ├── SKILL.md
 │   │       └── scripts/
 │   │           └── get-ticket-summary.sh
+│   ├── confluence/
+│   │   ├── .claude-plugin/
+│   │   │   └── plugin.json
+│   │   └── skills/confluence/
+│   │       ├── SKILL.md
+│   │       └── scripts/
 │   └── sql/
 │       ├── .claude-plugin/
 │       │   └── plugin.json
@@ -47,7 +54,7 @@ claude-plugins/
 │           └── SKILL.md
 ├── .claude/                       # Local configuration (gitignored)
 │   ├── sql-config.local.md       # Database credentials
-│   └── atlassian-config.local.md # Jira credentials
+│   └── atlassian-config.local.md # Jira and Confluence credentials
 ├── .github/workflows/
 │   ├── release-please.yml         # Automated releases
 │   └── convetional-commit.yml    # PR validation
@@ -76,6 +83,7 @@ Install these npm packages globally:
 
 ```bash
 npm install -g jira-api-cli
+npm install -g conni-cli
 npm install -g mysqldb-cli
 npm install -g context7-cli
 ```
@@ -87,6 +95,10 @@ Each plugin requires local configuration files that are gitignored:
 **For Jira plugin:**
 - Create `.claude/atlassian-config.local.md` with Atlassian credentials
 - See `plugins/jira/skills/jira/SKILL.md` for setup instructions
+
+**For Confluence plugin:**
+- Create `.claude/atlassian-config.local.md` with Atlassian credentials (same as Jira)
+- See `plugins/confluence/skills/confluence/SKILL.md` for setup instructions
 
 **For SQL plugin:**
 - Create `.claude/sql-config.local.md` with database connection details
@@ -111,6 +123,11 @@ python scripts/reply_message.py --thread-name "space/..." --message "Test reply"
 **Jira:**
 ```bash
 npx jira-api-cli test-connection
+```
+
+**Confluence:**
+```bash
+npx conni-cli test-connection
 ```
 
 **SQL:**
@@ -181,6 +198,13 @@ See `release-please-config.json` for release configuration.
 - Uses `jira-api-cli` npm package
 - Responses are large (50KB+), always save to temp files first
 - Helper script: `get-ticket-summary.sh` for quick summaries
+- Requires Atlassian API token
+
+### Confluence Plugin
+- Uses `conni-cli` npm package
+- Manages pages, spaces, and comments
+- Supports HTML storage format for page content
+- Shares configuration with Jira plugin (same `.claude/atlassian-config.local.md`)
 - Requires Atlassian API token
 
 ### SQL Plugin

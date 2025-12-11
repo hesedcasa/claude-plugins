@@ -1,0 +1,7 @@
+{
+  "name": "confluence",
+  "description": "Interact with Confluence pages, spaces, and comments",
+  "author": {
+    "name": "Hesed"
+  }
+}

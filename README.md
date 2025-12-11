@@ -20,6 +20,10 @@ Send messages to Google Chat spaces and reply to threads.
 
 Query, create, update, and manage Jira issues using JQL.
 
+### confluence
+
+Interact with Confluence pages, spaces, and comments.
+
 ### sql
 
 Execute SQL queries on MySQL and PostgreSQL databases with built-in safety features.

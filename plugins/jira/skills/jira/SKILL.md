@@ -58,7 +58,7 @@ defaultFormat: json
 
 # Jira Configuration
 
-This file stores your Jira API credentials for the atlassian-config skill.
+This file stores your Atlassian API credentials for both Jira and Confluence.
 
 **Security Note:** This file should be listed in `.gitignore` and never committed to version control.
 
@@ -77,10 +77,9 @@ profiles:
     host: https://personal.atlassian.net
     email: personal@email.com
     apiToken: token2
-````
+```
 
 Switch profiles using: `npx jira-api-cli` then type `profile personal`
-
 ````
 
 **IMPORTANT:** Add `*.local.md` to `.gitignore` to prevent credential leakage.
@@ -92,20 +91,22 @@ Switch profiles using: `npx jira-api-cli` then type `profile personal`
 **CRITICAL:** Jira API responses are often very large (50-100KB+) due to numerous custom fields, worklogs, comments, and metadata. To avoid consuming excessive context:
 
 1. **Always save responses to temporary files first**
-   ```bash
-   npx jira-api-cli get-issue '{"issueIdOrKey":"PROJ-123"}' > /tmp/jira-PROJ-123.json
-````
+
+```bash
+npx jira-api-cli get-issue '{"issueIdOrKey":"PROJ-123"}' > /tmp/jira-PROJ-123.json
+```
 
 2. **Extract only relevant fields using jq or grep**
 
-   ```bash
-   cat /tmp/jira-PROJ-123.json | jq '{key, summary: .fields.summary, status: .fields.status.name}'
-   ```
+```bash
+cat /tmp/jira-PROJ-123.json | jq '{key, summary: .fields.summary, status: .fields.status.name}'
+```
 
 3. **Clean up temp files when done**
-   ```bash
-   rm /tmp/jira-PROJ-123.json
-   ```
+
+```bash
+rm /tmp/jira-PROJ-123.json
+```
 
 **Why This Matters:**
 
