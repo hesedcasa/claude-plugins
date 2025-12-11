@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/hesedcasa/claude-plugins/compare/v1.0.0...v1.1.0) (2025-12-11)
+
+
+### 🎉 Features
+
+* add confluence skill ([f904775](https://github.com/hesedcasa/claude-plugins/commit/f904775e9754a515aada1c00bf055c375aa4360b))
+
 ## 1.0.0 (2025-12-11)
 
 
