@@ -1,0 +1,7 @@
+{
+  "name": "sentry",
+  "description": "Query, analyze, and manage Sentry issues, events, and projects",
+  "author": {
+    "name": "Hesed"
+  }
+}

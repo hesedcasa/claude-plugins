@@ -4,8 +4,6 @@ Version: 1.1.0 <!-- x-release-please-version -->
 
 A collection of custom plugins (skills) for [Claude Code](https://claude.com/claude-code) that extend Claude's capabilities with external integrations.
 
-## Version
-
 ## Available Plugins
 
 ### context7
@@ -27,6 +25,10 @@ Interact with Confluence pages, spaces, and comments.
 ### sql
 
 Execute SQL queries on MySQL and PostgreSQL databases with built-in safety features.
+
+### sentry
+
+Query, analyze, and manage Sentry issues, events, and projects.
 
 ## Installation
 

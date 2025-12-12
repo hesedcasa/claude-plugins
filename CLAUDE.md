@@ -4,13 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a collection of custom Claude Code plugins (skills) that extend Claude's capabilities with external integrations. It contains 5 plugins:
+This is a collection of custom Claude Code plugins (skills) that extend Claude's capabilities with external integrations. It contains 6 plugins:
 
 - **context7** - Search and retrieve documentation from Context7
 - **google-chat** - Send messages to Google Chat spaces
 - **jira** - Query, create, update, and manage Jira issues
 - **confluence** - Interact with Confluence pages, spaces, and comments
 - **sql** - Execute SQL queries on MySQL and PostgreSQL databases
+- **sentry** - Query, analyze, and manage Sentry issues, events, and projects
 
 ## Repository Structure
 
@@ -47,14 +48,21 @@ claude-plugins/
 │   │   └── skills/confluence/
 │   │       ├── SKILL.md
 │   │       └── scripts/
-│   └── sql/
+│   ├── sql/
+│   │   ├── .claude-plugin/
+│   │   │   └── plugin.json
+│   │   └── skills/sql/
+│   │       └── SKILL.md
+│   └── sentry/
 │       ├── .claude-plugin/
 │       │   └── plugin.json
-│       └── skills/sql/
-│           └── SKILL.md
+│       └── skills/sentry/
+│           ├── SKILL.md
+│           └── scripts/
 ├── .claude/                       # Local configuration (gitignored)
 │   ├── sql-config.local.md       # Database credentials
-│   └── atlassian-config.local.md # Jira and Confluence credentials
+│   ├── atlassian-config.local.md # Jira and Confluence credentials
+│   └── sentry-connector.local.md # Sentry credentials
 ├── .github/workflows/
 │   ├── release-please.yml         # Automated releases
 │   └── convetional-commit.yml    # PR validation
@@ -86,6 +94,7 @@ npm install -g jira-api-cli
 npm install -g conni-cli
 npm install -g mysqldb-cli
 npm install -g context7-cli
+npm install -g sentry-api-cli
 ```
 
 ### Configuration Setup
@@ -111,6 +120,10 @@ Each plugin requires local configuration files that are gitignored:
 **For Context7 plugin:**
 - No local config required
 - See `plugins/context7/skills/context7/SKILL.md` for setup instructions
+
+**For Sentry plugin:**
+- Create `.claude/sentry-connector.local.md` with Sentry credentials
+- See `plugins/sentry/skills/sentry/SKILL.md` for setup instructions
 
 ### Testing Plugins
 
@@ -138,6 +151,11 @@ npx mysqldb-cli query '{"query":"SELECT 1"}'
 **Context7:**
 ```bash
 npx context7-cli resolve-library-id '{"libraryName":"react"}'
+```
+
+**Sentry:**
+```bash
+npx sentry-api-cli test-connection
 ```
 
 ## Release Management
@@ -218,6 +236,13 @@ See `release-please-config.json` for release configuration.
 - Fetches live documentation from Context7 server
 - No local configuration required
 - Supports pagination and topic-specific searches
+
+### Sentry Plugin
+- Uses `sentry-api-cli` npm package
+- Query and analyze Sentry issues, events, and projects
+- Requires Sentry auth token with scopes: event:read, issue:read, project:read, org:read
+- Supports multiple output formats (JSON, TOON)
+- Interactive REPL mode for exploratory work
 
 ## Security Best Practices
 

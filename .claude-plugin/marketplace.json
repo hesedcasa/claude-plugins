@@ -50,6 +50,15 @@
         "name": "Hesed"
       },
       "category": "skills"
+    },
+    {
+      "name": "sentry",
+      "source": "./plugins/sentry",
+      "description": "Query, analyze, and manage Sentry issues, events, and projects",
+      "author": {
+        "name": "Hesed"
+      },
+      "category": "skills"
     }
   ]
 }
