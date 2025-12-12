@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/hesedcasa/claude-plugins/compare/v1.1.0...v1.2.0) (2025-12-12)
+
+
+### 🎉 Features
+
+* add sentry skill ([c439c64](https://github.com/hesedcasa/claude-plugins/commit/c439c64738896ae4858afe8534f5a1a34da1ae97))
+
 ## [1.1.0](https://github.com/hesedcasa/claude-plugins/compare/v1.0.0...v1.1.0) (2025-12-11)
 
 
