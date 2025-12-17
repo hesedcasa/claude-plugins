@@ -123,10 +123,10 @@ For convenience, use the bundled helper script to automatically fetch and extrac
 
 ```bash
 # Basic summary (no description/comments)
-.claude/skills/atlassian-config/scripts/get-ticket-summary.sh PROJ-123
+scripts/get-ticket-summary.sh PROJ-123
 
 # Full details (includes description, comments, worklogs)
-.claude/skills/atlassian-config/scripts/get-ticket-summary.sh PROJ-123 --full
+scripts/get-ticket-summary.sh PROJ-123 --full
 ```
 
 **What it does:**
@@ -239,6 +239,8 @@ npx jira-api-cli list-issues '{"jql":"project=PROJ AND status=\"In Progress\""}'
 
 **Create Issue:**
 
+- Refer to references/description_formatting.json to format description
+
 ```bash
 npx jira-api-cli create-issue '{
   "fields": {
@@ -253,6 +255,8 @@ npx jira-api-cli create-issue '{
 
 **Update Issue:**
 
+- Refer to references/description_formatting.json to format description
+
 ```bash
 npx jira-api-cli update-issue '{
   "issueIdOrKey": "PROJ-123",
@@ -263,10 +267,15 @@ npx jira-api-cli update-issue '{
 }'
 ```
 
-**Delete Issue:**
+**Add Comment:**
+
+- Refer to references/description_formatting.json to format comment
 
 ```bash
-npx jira-api-cli delete-issue '{"issueIdOrKey":"PROJ-123"}'
+npx jira-api-cli add-comment '{
+  "issueIdOrKey": "PROJ-123".
+  "body": "This is a comment".
+}'
 ```
 
 ### Attachment Operations
