@@ -1,6 +1,6 @@
 # Hesed Claude Plugins
 
-Version: 1.1.0 <!-- x-release-please-version -->
+Version: 1.2.0 <!-- x-release-please-version -->
 
 A collection of custom plugins (skills) for [Claude Code](https://claude.com/claude-code) that extend Claude's capabilities with external integrations.
 

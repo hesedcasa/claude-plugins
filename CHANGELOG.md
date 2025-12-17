@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.0](https://github.com/hesedcasa/claude-plugins/compare/v1.1.0...v1.2.0) (2025-12-17)
+
+
+### 🎉 Features
+
+* add sentry skill ([c439c64](https://github.com/hesedcasa/claude-plugins/commit/c439c64738896ae4858afe8534f5a1a34da1ae97))
+* improve jira skill with content formatting ([399713a](https://github.com/hesedcasa/claude-plugins/commit/399713a2852ba0dc1d6f9b707ee5f9de038b0291))
+
 ## [1.1.0](https://github.com/hesedcasa/claude-plugins/compare/v1.0.0...v1.1.0) (2025-12-11)
 
 
