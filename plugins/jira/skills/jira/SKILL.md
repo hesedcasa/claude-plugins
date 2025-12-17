@@ -239,42 +239,39 @@ npx jira-api-cli list-issues '{"jql":"project=PROJ AND status=\"In Progress\""}'
 
 **Create Issue:**
 
-- Refer to references/description_formatting.json to format description
-
 ```bash
 npx jira-api-cli create-issue '{
   "fields": {
     "project": {"key": "PROJ"},
     "summary": "Issue title",
-    "description": "Issue description",
+    "description": "# Updated the issue'\''s description\n## TODO:\n- Task 1\n- Task 2",
     "issuetype": {"name": "Task"},
     "priority": {"name": "Medium"}
   }
+  "markdown":true
 }'
 ```
 
 **Update Issue:**
-
-- Refer to references/description_formatting.json to format description
 
 ```bash
 npx jira-api-cli update-issue '{
   "issueIdOrKey": "PROJ-123",
   "fields": {
     "summary": "Updated title",
-    "description": "Updated description"
-  }
+    "description": "# Updated the issue'\''s description\n## TODO:\n- Task 1\n- Task 2"
+  },
+  "markdown":true
 }'
 ```
 
 **Add Comment:**
 
-- Refer to references/description_formatting.json to format comment
-
 ```bash
 npx jira-api-cli add-comment '{
-  "issueIdOrKey": "PROJ-123".
-  "body": "This is a comment".
+  "issueIdOrKey": "PROJ-123",
+  "body": "# Test\n## This is one of the issue'\''s comment",
+  "markdown":true
 }'
 ```
 
