@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/hesedcasa/claude-plugins/compare/v1.2.0...v1.3.0) (2025-12-17)
+
+
+### 🎉 Features
+
+* update jira skill create and update issue with markdown ([4d2b129](https://github.com/hesedcasa/claude-plugins/commit/4d2b129bafc2a6889391c486516b9110f8986422))
+
 ## [1.2.0](https://github.com/hesedcasa/claude-plugins/compare/v1.1.0...v1.2.0) (2025-12-17)
 
 
