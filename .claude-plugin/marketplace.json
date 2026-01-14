@@ -59,6 +59,15 @@
         "name": "Hesed"
       },
       "category": "skills"
+    },
+    {
+      "name": "agent-browser",
+      "source": "./plugins/agent-browser",
+      "description": "Automates browser interactions for web testing, form filling, screenshots, and data extraction",
+      "author": {
+        "name": "Hesed"
+      },
+      "category": "skills"
     }
   ]
 }
