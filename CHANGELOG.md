@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/hesedcasa/claude-plugins/compare/v1.3.0...v1.4.0) (2026-01-14)
+
+
+### 🎉 Features
+
+* add agent-browser skill ([b90d475](https://github.com/hesedcasa/claude-plugins/commit/b90d475973fae8e8756fefe8eb5ece9441548e93))
+
 ## [1.3.0](https://github.com/hesedcasa/claude-plugins/compare/v1.2.0...v1.3.0) (2025-12-17)
 
 
