@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a collection of custom Claude Code plugins (skills) that extend Claude's capabilities with external integrations. It contains 6 plugins:
+This is a collection of custom Claude Code plugins (skills) that extend Claude's capabilities with external integrations. It contains 7 plugins:
 
 - **context7** - Search and retrieve documentation from Context7
 - **google-chat** - Send messages to Google Chat spaces
@@ -12,6 +12,7 @@ This is a collection of custom Claude Code plugins (skills) that extend Claude's
 - **confluence** - Interact with Confluence pages, spaces, and comments
 - **sql** - Execute SQL queries on MySQL and PostgreSQL databases
 - **sentry** - Query, analyze, and manage Sentry issues, events, and projects
+- **terminal-recorder** - Record terminal sessions and convert them to animated GIF files
 
 ## Repository Structure
 
@@ -53,12 +54,17 @@ claude-plugins/
 │   │   │   └── plugin.json
 │   │   └── skills/sql/
 │   │       └── SKILL.md
-│   └── sentry/
+│   ├── sentry/
+│   │   ├── .claude-plugin/
+│   │   │   └── plugin.json
+│   │   └── skills/sentry/
+│   │       ├── SKILL.md
+│   │       └── scripts/
+│   └── terminal-recorder/
 │       ├── .claude-plugin/
 │       │   └── plugin.json
-│       └── skills/sentry/
-│           ├── SKILL.md
-│           └── scripts/
+│       └── skills/terminal-recorder/
+│           └── SKILL.md
 ├── .claude/                       # Local configuration (gitignored)
 │   ├── sql-config.local.md       # Database credentials
 │   ├── atlassian-config.local.md # Jira and Confluence credentials
@@ -102,58 +108,70 @@ npm install -g sentry-api-cli
 Each plugin requires local configuration files that are gitignored:
 
 **For Jira plugin:**
+
 - Create `.claude/atlassian-config.local.md` with Atlassian credentials
 - See `plugins/jira/skills/jira/SKILL.md` for setup instructions
 
 **For Confluence plugin:**
+
 - Create `.claude/atlassian-config.local.md` with Atlassian credentials (same as Jira)
 - See `plugins/confluence/skills/confluence/SKILL.md` for setup instructions
 
 **For SQL plugin:**
+
 - Create `.claude/sql-config.local.md` with database connection details
 - See `plugins/sql/skills/sql/SKILL.md` for setup instructions
 
 **For Google Chat plugin:**
+
 - Create `plugins/google-chat/skills/google-chat/config.jsonc` with API keys
 - See `plugins/google-chat/skills/google-chat/SKILL.md` for setup instructions
 
 **For Context7 plugin:**
+
 - No local config required
 - See `plugins/context7/skills/context7/SKILL.md` for setup instructions
 
 **For Sentry plugin:**
+
 - Create `.claude/sentry-connector.local.md` with Sentry credentials
 - See `plugins/sentry/skills/sentry/SKILL.md` for setup instructions
 
 ### Testing Plugins
 
 **Google Chat:**
+
 ```bash
 python scripts/send_message.py --space-id "space_id" --message "Test message"
 python scripts/reply_message.py --thread-name "space/..." --message "Test reply"
 ```
 
 **Jira:**
+
 ```bash
 npx jira-api-cli test-connection
 ```
 
 **Confluence:**
+
 ```bash
 npx conni-cli test-connection
 ```
 
 **SQL:**
+
 ```bash
 npx mysqldb-cli query '{"query":"SELECT 1"}'
 ```
 
 **Context7:**
+
 ```bash
 npx context7-cli resolve-library-id '{"libraryName":"react"}'
 ```
 
 **Sentry:**
+
 ```bash
 npx sentry-api-cli test-connection
 ```
@@ -173,6 +191,7 @@ Follow **Conventional Commits** specification:
 - `chore:` - Maintenance tasks
 
 Example:
+
 ```bash
 git commit -m "feat: add new Context7 documentation search feature"
 ```
@@ -207,18 +226,21 @@ See `release-please-config.json` for release configuration.
 ## Plugin-Specific Notes
 
 ### Google Chat Plugin
+
 - Python scripts require `requests` library: `pip install requests`
 - Uses `config.jsonc` for API keys and space tokens
 - Supports formatted messages (markdown-like syntax)
 - Scripts located in `skills/google-chat/scripts/`
 
 ### Jira Plugin
+
 - Uses `jira-api-cli` npm package
 - Responses are large (50KB+), always save to temp files first
 - Helper script: `get-ticket-summary.sh` for quick summaries
 - Requires Atlassian API token
 
 ### Confluence Plugin
+
 - Uses `conni-cli` npm package
 - Manages pages, spaces, and comments
 - Supports HTML storage format for page content
@@ -226,23 +248,35 @@ See `release-please-config.json` for release configuration.
 - Requires Atlassian API token
 
 ### SQL Plugin
+
 - Uses `mysqldb-cli` npm package
 - Supports both MySQL and PostgreSQL
 - Built-in safety features (row limits, destructive operation warnings)
 - Multiple output formats: table, json, csv, toon
 
 ### Context7 Plugin
+
 - Uses `context7-cli` npm package
 - Fetches live documentation from Context7 server
 - No local configuration required
 - Supports pagination and topic-specific searches
 
 ### Sentry Plugin
+
 - Uses `sentry-api-cli` npm package
 - Query and analyze Sentry issues, events, and projects
 - Requires Sentry auth token with scopes: event:read, issue:read, project:read, org:read
 - Supports multiple output formats (JSON, TOON)
 - Interactive REPL mode for exploratory work
+
+### Terminal Recorder Plugin
+
+- Uses `asciinema` for recording terminal sessions (outputs `.cast` files in asciicast v2 format)
+- Uses `agg` for converting `.cast` files to animated GIF files
+- No API credentials or configuration files required
+- Install via `brew install asciinema` and `cargo install --git https://github.com/asciinema/agg`
+- Use `--idle-time-limit` during recording to trim long pauses before GIF conversion
+- Optionally use `gifsicle` for post-processing GIF optimization
 
 ## Security Best Practices
 
@@ -257,6 +291,7 @@ See `release-please-config.json` for release configuration.
 ### Adding a New Plugin
 
 1. Create plugin directory structure:
+
    ```
    plugins/<name>/
      .claude-plugin/plugin.json
