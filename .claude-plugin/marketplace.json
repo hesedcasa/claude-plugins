@@ -1,82 +1,32 @@
 {
   "name": "hesed-plugins",
   "version": "1.4.0",
-  "owner": {
-    "name": "Hesed"
-  },
   "description": "A collection of Claude plugins for common productivity and development workflows",
+  "owner": {
+    "name": "Hesed",
+    "email": "support@hesed.casa"
+  },
   "plugins": [
     {
-      "name": "google-chat",
-      "source": "./plugins/google-chat",
-      "description": "Send messages to Google Chat spaces and reply to threads",
-      "author": {
-        "name": "Hesed"
-      },
-      "category": "skills"
-    },
-    {
-      "name": "jira",
-      "source": "./plugins/jira",
-      "description": "Query, create, update, and manage Jira issues using JQL",
-      "author": {
-        "name": "Hesed"
-      },
-      "category": "skills"
-    },
-    {
-      "name": "confluence",
-      "source": "./plugins/confluence",
-      "description": "Interact with Confluence pages, spaces, and comments",
-      "author": {
-        "name": "Hesed"
-      },
-      "category": "skills"
-    },
-    {
-      "name": "sql",
-      "source": "./plugins/sql",
-      "description": "Execute SQL queries on MySQL and PostgreSQL databases with built-in safety features",
-      "author": {
-        "name": "Hesed"
-      },
-      "category": "skills"
-    },
-    {
-      "name": "context7",
-      "source": "./plugins/context7",
-      "description": "Search and retrieve up-to-date documentation from Context7",
-      "author": {
-        "name": "Hesed"
-      },
-      "category": "skills"
-    },
-    {
-      "name": "sentry",
-      "source": "./plugins/sentry",
-      "description": "Query, analyze, and manage Sentry issues, events, and projects",
-      "author": {
-        "name": "Hesed"
-      },
-      "category": "skills"
-    },
-    {
       "name": "agent-browser",
-      "source": "./plugins/agent-browser",
       "description": "Automates browser interactions for web testing, form filling, screenshots, and data extraction",
       "author": {
-        "name": "Hesed"
+        "name": "Hesed",
+        "email": "support@hesed.casa"
       },
-      "category": "skills"
+      "category": "development",
+      "source": "./plugins/agent-browser",
+      "homepage": "https://github.com/hesedcasa/claude-plugins/tree/main/plugins/agent-browser"
     },
     {
       "name": "terminal-recorder",
-      "source": "./plugins/terminal-recorder",
       "description": "Record terminal sessions and convert them to animated GIF files using asciinema and agg",
       "author": {
         "name": "Hesed"
       },
-      "category": "skills"
+      "category": "skills",
+      "source": "./plugins/terminal-recorder",
+      "homepage": "https://github.com/hesedcasa/claude-plugins/tree/main/plugins/terminal-recorder"
     }
   ]
 }
