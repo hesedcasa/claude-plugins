@@ -1,0 +1,7 @@
+{
+  "name": "terminal-recorder",
+  "description": "Record terminal sessions and convert them to animated GIF files using asciinema and agg",
+  "author": {
+    "name": "Hesed"
+  }
+}
