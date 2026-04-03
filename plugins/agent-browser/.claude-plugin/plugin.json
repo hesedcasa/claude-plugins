@@ -1,6 +1,6 @@
 {
   "name": "agent-browser",
-  "description": "Automates browser interactions for web testing, form filling, screenshots, and data extraction",
+  "description": "Automates browser interactions with agentic memory — learns navigation patterns, pitfalls, and workflows so repeat visits are faster and more reliable",
   "author": {
     "name": "Hesed",
     "email": "support@hesed.casa"

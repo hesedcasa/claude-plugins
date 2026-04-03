@@ -1,9 +1,9 @@
 ---
 name: agent-browser
-description: Automates browser interactions for web testing, form filling, screenshots, and data extraction. Use when the user needs to navigate websites, interact with web pages, fill forms, take screenshots, test web applications, or extract information from web pages.
+description: Automates browser interactions for web testing, form filling, screenshots, and data extraction. Learns from every browsing session — remembers navigation patterns, pitfalls, and proven workflows so repeat visits are faster and more reliable. Use when the user needs to navigate websites, interact with web pages, fill forms, take screenshots, test web applications, or extract information from web pages.
 context: fork
 agent: Explore
-allowed-tools: Read, Write, Glob, Grep, Bash(agent-browser *)
+allowed-tools: Read, Write, Glob, Grep, Bash(agent-browser *), Bash(python3 *)
 ---
 
 # Browser Automation with agent-browser
@@ -24,6 +24,65 @@ agent-browser close             # Close browser
 2. Snapshot: `agent-browser snapshot -i` (returns elements with refs like `@e1`, `@e2`)
 3. Interact using refs from the snapshot
 4. Re-snapshot after navigation or significant DOM changes
+
+## Agentic Memory System
+
+This plugin learns from every browsing session using a two-layer memory system:
+
+### How It Works
+
+**Before browsing** (automatic via PreToolUse hook):
+- Queries **ChromaDB** for semantically relevant memories (facts about the site, navigation tips, proven workflows)
+- Queries **SQLite** for structured checkpoint knowledge (exact command sequences, pitfalls, navigation graph)
+- Injects the combined context so you start each session with everything learned from previous visits
+
+**After browsing** (automatic via Stop hook):
+- Extracts all agent-browser commands from the session transcript
+- Groups them into logical task checkpoints (login, search, form fill, etc.)
+- Classifies and stores three types of memories:
+  - **Semantic**: Facts about websites (page structure, element types, auth methods)
+  - **Procedural**: Tips for effective navigation (wait strategies, pitfall avoidance)
+  - **Episodic**: Proven task sequences that can be replayed
+- Runs memory maintenance (decays stale memories, cleans up unreliable ones)
+
+**Cross-domain learning**: Patterns learned on one website help with similar sites. If you've logged into 5 different apps, the agent knows the general "login flow" pattern.
+
+**Self-correcting**: If stored steps no longer work (website redesigned), the agent proceeds with fresh snapshots and the new information is learned for next time. Outdated memories automatically decay.
+
+### Memory CLI (for inspection/debugging)
+
+```bash
+# See what the agent has learned
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/browser_memory.py stats
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/browser_memory.py domains
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/browser_memory.py domain-info example.com
+
+# Search memories by meaning
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/browser_memory.py recall "how to log in"
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/browser_memory.py recall "user settings page" --domain example.com
+
+# Manually teach the agent
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/browser_memory.py save procedural example.com "Always wait for networkidle after clicking the Save button"
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/browser_memory.py save semantic example.com "Login page uses email + password, OTP is required for admin accounts"
+
+# Maintenance
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/browser_memory.py maintain    # Decay stale + cleanup
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/browser_memory.py decay 14    # Decay memories older than 14 days
+```
+
+### Prerequisites
+
+The memory system requires ChromaDB:
+
+```bash
+pip install chromadb
+```
+
+Without ChromaDB, the plugin still works using the SQLite checkpoint system only. ChromaDB adds semantic search (finding relevant memories by meaning, not just exact domain match).
+
+Memory is stored at `~/.ai-browser-workflow/` (configurable via `BROWSER_MEMORY_DIR` env var):
+- `chroma_db/` — ChromaDB vector database for semantic memory
+- `checkpoints.db` — SQLite database for structured checkpoints
 
 ## Commands
 
