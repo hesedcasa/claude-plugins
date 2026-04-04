@@ -6,7 +6,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/browser_memory.py context-from-env 2>/dev/null || true",
+            "command": "echo \"$TOOL_INPUT\" | grep -q 'agent-browser open' && python3 ${CLAUDE_PLUGIN_ROOT}/scripts/browser_memory.py context-from-env 2>/dev/null || true",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [      {
+        "matcher": "bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"$TOOL_INPUT\" | grep -q 'agent-browser' && python3 ${CLAUDE_PLUGIN_ROOT}/scripts/browser_memory.py update-from-env 2>/dev/null || true",
             "timeout": 5000
           }
         ]

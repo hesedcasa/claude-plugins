@@ -2,42 +2,48 @@
 """
 Agentic Browser Memory Store
 
-Uses ChromaDB for semantic search over three types of browser navigation memories,
-following the agentic memory patterns from Chroma's documentation:
+Uses ChromaDB for semantic search over three types of browser navigation
+memories, following the agentic memory patterns from Chroma's documentation:
 
-- Semantic: Facts about websites (structure, quirks, auth methods, page layouts)
-- Procedural: Patterns and instructions for effective navigation (wait strategies,
-  element selection tips, workarounds for site-specific issues)
+- Semantic: Facts about websites (structure, quirks, auth methods, layouts)
+- Procedural: Patterns and instructions for effective navigation
+  (wait strategies, element selection tips, site-specific workarounds)
 - Episodic: Successful task sequences that can be replayed or adapted
 
-Sits alongside the existing SQLite checkpoint_db for structured data. ChromaDB
-provides semantic similarity search so the agent can find relevant memories by
-meaning, not just exact domain match — enabling cross-domain pattern transfer.
+Sits alongside the existing SQLite checkpoint_db for structured data.
+ChromaDB provides semantic similarity search so the agent can find
+relevant memories by meaning, not just exact domain match — enabling
+cross-domain pattern transfer.
 
 Usage:
   from memory_store import BrowserMemoryStore
 
   store = BrowserMemoryStore()
-  store.save("Login form uses email + password, submit button labeled 'Sign in'",
-             type="semantic", domain="app.example.com", path="/login")
-  store.save("Always wait for networkidle after clicking login — SPA redirect is slow",
-             type="procedural", domain="app.example.com", path="/login")
-  store.save("Login: open /login → fill @e1 email → fill @e2 password → click @e3 → wait networkidle",
-             type="episodic", domain="app.example.com", path="/login", task_type="login")
+  store.save(
+      "Login form uses email + password, submit button labeled 'Sign in'",
+      type="semantic", domain="app.example.com", path="/login")
+  store.save(
+      "Always wait for networkidle after clicking login — SPA redirect",
+      type="procedural", domain="app.example.com", path="/login")
+  store.save(
+      "Login: open /login → fill @e1 email → fill @e2 password → click",
+      type="episodic", domain="app.example.com", path="/login",
+      task_type="login")
 
   # Semantic recall before browsing
-  memories = store.recall("how to log in to the admin panel", domain="app.example.com")
+  memories = store.recall(
+      "how to log in to the admin panel", domain="app.example.com")
 
   # Generate injection context for a session
-  context = store.generate_context("app.example.com", task_description="navigate to user settings")
+  context = store.generate_context(
+      "app.example.com",
+      task_description="navigate to user settings")
 """
 
-import json
 import os
-import sys
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Literal
 
 MEMORY_DIR = os.environ.get(
     "BROWSER_MEMORY_DIR", os.path.expanduser("~/.ai-browser-workflow")
@@ -48,15 +54,17 @@ CHROMA_DIR = os.path.join(MEMORY_DIR, "chroma_db")
 def _chroma_available():
     """Check if chromadb is installed."""
     try:
-        import chromadb
-        return True
-    except ImportError:
+        import importlib.util
+
+        return importlib.util.find_spec("chromadb") is not None
+    except Exception:
         return False
 
 
 @dataclass
 class MemoryRecord:
     """A single memory record retrieved from the store."""
+
     id: str
     content: str
     type: str  # semantic, procedural, episodic
@@ -82,7 +90,7 @@ class BrowserMemoryStore:
     """
 
     def __init__(self, chroma_dir=None):
-        import chromadb
+        import chromadb  # type: ignore[import-untyped]
 
         self.chroma_dir = chroma_dir or CHROMA_DIR
         os.makedirs(self.chroma_dir, exist_ok=True)
@@ -93,7 +101,6 @@ class BrowserMemoryStore:
         )
 
     # ─── Write ──────────────────────────────────────────────
-
     def save(
         self,
         content: str,
@@ -116,7 +123,8 @@ class BrowserMemoryStore:
         if existing:
             return self._merge_memory(existing, content, confidence)
 
-        mem_id = f"{type}_{domain}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S_%f')}"
+        ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S_%f")
+        mem_id = f"{type}_{domain}_{ts}"
         now = datetime.utcnow().isoformat()
 
         metadata = {
@@ -139,7 +147,7 @@ class BrowserMemoryStore:
         return mem_id
 
     def _find_duplicate(self, content, domain, memory_type):
-        """Check if a very similar memory already exists for this domain+type."""
+        """Check if a very similar memory exists for this domain+type."""
         if self.collection.count() == 0:
             return None
 
@@ -171,8 +179,8 @@ class BrowserMemoryStore:
     def _merge_memory(self, existing, new_content, new_confidence):
         """
         Merge new information into an existing memory (conflict resolution).
-        Uses the 'version' strategy: keeps the newer content if confidence is higher,
-        otherwise bumps access count to reinforce the existing memory.
+        Uses the 'version' strategy: keeps the newer content if confidence
+        is higher, otherwise bumps access count to reinforce the memory.
         """
         meta = existing["metadata"]
         now = datetime.utcnow().isoformat()
@@ -182,32 +190,35 @@ class BrowserMemoryStore:
             self.collection.update(
                 ids=[existing["id"]],
                 documents=[new_content],
-                metadatas=[{
-                    **meta,
-                    "confidence": new_confidence,
-                    "last_accessed": now,
-                    "access_count": meta.get("access_count", 0) + 1,
-                }],
+                metadatas=[
+                    {
+                        **meta,
+                        "confidence": new_confidence,
+                        "last_accessed": now,
+                        "access_count": meta.get("access_count", 0) + 1,
+                    }
+                ],
             )
         else:
             # Just reinforce the existing memory
             self.collection.update(
                 ids=[existing["id"]],
-                metadatas=[{
-                    **meta,
-                    "last_accessed": now,
-                    "access_count": meta.get("access_count", 0) + 1,
-                }],
+                metadatas=[
+                    {
+                        **meta,
+                        "last_accessed": now,
+                        "access_count": meta.get("access_count", 0) + 1,
+                    }
+                ],
             )
         return existing["id"]
 
     # ─── Read ───────────────────────────────────────────────
-
     def recall(
         self,
         query: str,
-        domain: str = None,
-        memory_type: str = None,
+        domain: str | None = None,
+        memory_type: str | None = None,
         n_results: int = 5,
         min_confidence: float = 0.0,
     ) -> list[MemoryRecord]:
@@ -216,7 +227,8 @@ class BrowserMemoryStore:
 
         Args:
             query: Natural language description of what you're looking for
-            domain: Filter to a specific domain (optional — omit for cross-domain search)
+            domain: Filter to a specific domain (optional — omit for
+                cross-domain search)
             memory_type: Filter to semantic/procedural/episodic (optional)
             n_results: Max results to return
             min_confidence: Minimum confidence threshold
@@ -255,9 +267,14 @@ class BrowserMemoryStore:
         if results["ids"] and results["ids"][0]:
             for i, mem_id in enumerate(results["ids"][0]):
                 meta = results["metadatas"][0][i]
-                dist = results["distances"][0][i] if results.get("distances") else 0
+                dist = (
+                    results["distances"][0][i]
+                    if results.get("distances")
+                    else 0
+                )
 
-                # Filter out low-relevance results (distance > 1.0 in cosine = barely related)
+                # Filter out low-relevance results
+                # (distance > 1.0 in cosine = barely related)
                 if dist > 1.2:
                     continue
 
@@ -266,33 +283,41 @@ class BrowserMemoryStore:
                 try:
                     self.collection.update(
                         ids=[mem_id],
-                        metadatas=[{
-                            **meta,
-                            "access_count": meta.get("access_count", 0) + 1,
-                            "last_accessed": now,
-                        }],
+                        metadatas=[
+                            {
+                                **meta,
+                                "access_count": (
+                                    meta.get("access_count", 0) + 1
+                                ),
+                                "last_accessed": now,
+                            }
+                        ],
                     )
                 except Exception:
                     pass
 
-                records.append(MemoryRecord(
-                    id=mem_id,
-                    content=results["documents"][0][i],
-                    type=meta.get("type", ""),
-                    domain=meta.get("domain", ""),
-                    path=meta.get("path", "/"),
-                    confidence=meta.get("confidence", 1.0),
-                    access_count=meta.get("access_count", 0),
-                    created_at=meta.get("created_at", ""),
-                    last_accessed=meta.get("last_accessed", ""),
-                    source=meta.get("source", ""),
-                    task_type=meta.get("task_type", ""),
-                    distance=dist,
-                ))
+                records.append(
+                    MemoryRecord(
+                        id=mem_id,
+                        content=results["documents"][0][i],
+                        type=meta.get("type", ""),
+                        domain=meta.get("domain", ""),
+                        path=meta.get("path", "/"),
+                        confidence=meta.get("confidence", 1.0),
+                        access_count=meta.get("access_count", 0),
+                        created_at=meta.get("created_at", ""),
+                        last_accessed=meta.get("last_accessed", ""),
+                        source=meta.get("source", ""),
+                        task_type=meta.get("task_type", ""),
+                        distance=dist,
+                    )
+                )
 
         return records
 
-    def for_planning(self, domain: str, task_description: str = None) -> list[MemoryRecord]:
+    def for_planning(
+        self, domain: str, task_description: str | None = None
+    ) -> list[MemoryRecord]:
         """
         Get memories useful for PLANNING a browser task.
         Returns semantic facts + episodic (past successful workflows).
@@ -300,10 +325,14 @@ class BrowserMemoryStore:
         query = task_description or f"browsing and navigating {domain}"
 
         # Domain-specific facts
-        facts = self.recall(query, domain=domain, memory_type="semantic", n_results=5)
+        facts = self.recall(
+            query, domain=domain, memory_type="semantic", n_results=5
+        )
 
         # Past successful workflows (domain-specific)
-        episodes = self.recall(query, domain=domain, memory_type="episodic", n_results=3)
+        episodes = self.recall(
+            query, domain=domain, memory_type="episodic", n_results=3
+        )
 
         # Cross-domain episodes for similar tasks (if task_description given)
         cross_domain = []
@@ -317,17 +346,22 @@ class BrowserMemoryStore:
 
         return facts + episodes + cross_domain
 
-    def for_execution(self, domain: str, action_context: str = None) -> list[MemoryRecord]:
+    def for_execution(
+        self, domain: str, action_context: str | None = None
+    ) -> list[MemoryRecord]:
         """
         Get memories useful during EXECUTION (procedural tips).
         These are navigation instructions, wait strategies, and workarounds.
         """
         query = action_context or f"interacting with elements on {domain}"
-        return self.recall(query, domain=domain, memory_type="procedural", n_results=5)
+        return self.recall(
+            query, domain=domain, memory_type="procedural", n_results=5
+        )
 
     # ─── Context Generation ─────────────────────────────────
-
-    def generate_context(self, domain: str, task_description: str = None) -> str:
+    def generate_context(
+        self, domain: str, task_description: str | None = None
+    ) -> str:
         """
         Generate a compact context block for injection into a browsing session.
         This is the primary output — what gets fed to Claude before browsing.
@@ -359,7 +393,9 @@ class BrowserMemoryStore:
         if episodes:
             lines.append("\n## Proven Workflows:")
             for e in episodes:
-                domain_note = f" (from {e.domain})" if e.domain != domain else ""
+                domain_note = (
+                    f" (from {e.domain})" if e.domain != domain else ""
+                )
                 lines.append(f"- {e.content}{domain_note}")
 
         lines.append(
@@ -371,14 +407,15 @@ class BrowserMemoryStore:
         return "\n".join(lines)
 
     # ─── Memory Maintenance ─────────────────────────────────
-
     def flag_outdated(self, memory_id: str, reason: str = ""):
         """
         Flag a memory as potentially outdated (e.g., website changed).
         Reduces its confidence so it ranks lower in future queries.
         """
         try:
-            result = self.collection.get(ids=[memory_id], include=["metadatas"])
+            result = self.collection.get(
+                ids=[memory_id], include=["metadatas"]
+            )
             if result["metadatas"]:
                 meta = result["metadatas"][0]
                 new_conf = max(0.1, meta.get("confidence", 1.0) * 0.5)
@@ -408,7 +445,10 @@ class BrowserMemoryStore:
             try:
                 accessed_dt = datetime.fromisoformat(last_accessed)
                 age_days = (now - accessed_dt).days
-                if age_days > days_threshold and meta.get("confidence", 1.0) > 0.3:
+                if (
+                    age_days > days_threshold
+                    and meta.get("confidence", 1.0) > 0.3
+                ):
                     decay_factor = 0.9 ** (age_days // days_threshold)
                     new_conf = max(0.1, meta["confidence"] * decay_factor)
                     self.collection.update(
@@ -437,7 +477,6 @@ class BrowserMemoryStore:
         return len(to_delete)
 
     # ─── Stats ──────────────────────────────────────────────
-
     def get_stats(self) -> dict:
         """Get memory store statistics."""
         count = self.collection.count()

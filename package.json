@@ -1,0 +1,25 @@
+{
+  "name": "hesed-plugins",
+  "description": "A collection of Claude plugins for common productivity and development workflows",
+  "version": "1.4.0",
+  "author": "Hesed",
+  "devDependencies": {
+    "eslint": "^9",
+    "globals": "^17.4.0",
+    "husky": "^9.1.7",
+    "prettier": "^3.8.1",
+    "prettier-plugin-sh": "^0.18.0"
+  },
+  "scripts": {
+    "lint": "npm run lint:js && npm run lint:bash && npm run lint:py",
+    "lint:js": "eslint .",
+    "lint:bash": "find plugins bin -name '*.sh' | xargs shellcheck",
+    "lint:py": "flake8 plugins",
+    "format": "npm run format:js && npm run format:bash && npm run format:py",
+    "format:js": "prettier --write --cache \"**/*.{js,mjs,cjs}\" --ignore-path .gitignore",
+    "format:bash": "find plugins bin -name '*.sh' | xargs prettier --write",
+    "format:py": "black plugins",
+    "build": "bash install-lint-tools.sh && npm run lint && npm run format",
+    "prepare": "husky"
+  }
+}

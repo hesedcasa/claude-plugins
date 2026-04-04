@@ -11,7 +11,7 @@ BASE_DELAY_MAX = 0.110   # 110 ms
 THINK_PROBABILITY = 0.03  # 3% chance per character
 THINK_DELAY_MIN = 0.200  # 200 ms
 THINK_DELAY_MAX = 0.500  # 500 ms
-ENTER_PRE_PAUSE  = (0.100, 0.300)
+ENTER_PRE_PAUSE = (0.100, 0.300)
 ENTER_POST_PAUSE = (0.050, 0.150)
 
 
@@ -33,7 +33,8 @@ def type_human(text: str) -> None:
 
         delay = random.uniform(BASE_DELAY_MIN, BASE_DELAY_MAX)
         if ch in PUNCTUATION_PAUSE:
-            delay *= random.uniform(1.8, 3.0)   # noticeably longer on punctuation
+            # noticeably longer on punctuation
+            delay *= random.uniform(1.8, 3.0)
         time.sleep(delay)
 
 
