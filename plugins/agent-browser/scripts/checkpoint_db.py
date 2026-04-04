@@ -401,8 +401,7 @@ class CheckpointDB:
                 seen_tasks.add(cp["task_type"])
                 cmds = json.loads(cp["commands_json"])
                 cmd_summary = " → ".join(
-                    f"{c['action']} {c.get('target', '')}".strip()
-                    for c in cmds[:8]
+                    f"{c['action']} {c.get('target', '')}".strip() for c in cmds[:8]
                 )
                 lines.append(f"\n### {cp['task_summary']} ({cp['task_type']})")
                 lines.append(f"Path: {cp.get('path', '/')}")
@@ -490,10 +489,7 @@ class CheckpointDB:
         count = cp["replay_count"] + 1
         # Exponential moving average for reliability
         alpha = 0.3
-        new_rel = (
-            alpha * (1.0 if success else 0.0)
-            + (1 - alpha) * cp["reliability"]
-        )
+        new_rel = alpha * (1.0 if success else 0.0) + (1 - alpha) * cp["reliability"]
         self.conn.execute(
             """
             UPDATE checkpoints
@@ -507,8 +503,7 @@ class CheckpointDB:
         self.conn.commit()
 
     def get_stats(self):
-        return dict(
-            self.conn.execute("""
+        return dict(self.conn.execute("""
             SELECT
                 (SELECT COUNT(*) FROM sessions) as sessions,
                 (SELECT COUNT(*) FROM checkpoints) as checkpoints,
@@ -519,8 +514,7 @@ class CheckpointDB:
                 (SELECT COUNT(*) FROM page_snapshots) as known_pages,
                 (SELECT AVG(CASE WHEN success THEN 1.0 ELSE 0.0 END)
                  FROM checkpoints) as avg_success_rate
-        """).fetchone()
-        )
+        """).fetchone())
 
     def close(self):
         self.conn.close()

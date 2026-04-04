@@ -221,16 +221,13 @@ def _generate_session_summary(
     if total_errors:
         error_rate = total_errors / max(total_cmds, 1) * 100
         parts.append(
-            f"Encountered {total_errors} errors"
-            f" ({error_rate:.0f}% error rate)."
+            f"Encountered {total_errors} errors" f" ({error_rate:.0f}% error rate)."
         )
     else:
         parts.append("No errors encountered.")
 
     successes = sum(1 for cp in checkpoints if cp.success)
-    parts.append(
-        f"{successes}/{len(checkpoints)} tasks completed successfully."
-    )
+    parts.append(f"{successes}/{len(checkpoints)} tasks completed successfully.")
 
     return " ".join(parts)
 
@@ -245,11 +242,7 @@ def _build_navigation_map(db: CheckpointDB, commands: list, checkpoints: list):
             try:
                 from urllib.parse import urlparse
 
-                url = (
-                    cmd.url
-                    if cmd.url.startswith("http")
-                    else f"https://{cmd.url}"
-                )
+                url = cmd.url if cmd.url.startswith("http") else f"https://{cmd.url}"
                 parsed = urlparse(url)
                 domain = parsed.hostname
                 path = parsed.path or "/"
@@ -271,9 +264,7 @@ def _build_navigation_map(db: CheckpointDB, commands: list, checkpoints: list):
             pass
 
 
-def _print_extraction_report(
-    result: dict, checkpoints: list[ParsedCheckpoint]
-):
+def _print_extraction_report(result: dict, checkpoints: list[ParsedCheckpoint]):
     """Print a human-readable extraction report."""
     print()
     print("=" * 60)
@@ -292,17 +283,12 @@ def _print_extraction_report(
         status = "✓" if cp.success else "✗"
         print(f"  {status} Checkpoint {i}: {cp.task_summary}")
         print(f"    Type: {cp.task_type} | Domain: {cp.domain}{cp.path or ''}")
-        print(
-            f"    Commands: {len(cp.commands)}"
-            f" | Tokens: ~{cp.tokens_estimated}"
-        )
+        print(f"    Commands: {len(cp.commands)}" f" | Tokens: ~{cp.tokens_estimated}")
 
         if cp.pitfalls:
             for pit in cp.pitfalls:
                 pit_dict = pit if isinstance(pit, dict) else pit.__dict__
-                tip = pit_dict.get(
-                    "avoid_tip", pit_dict.get("error_message", "")
-                )
+                tip = pit_dict.get("avoid_tip", pit_dict.get("error_message", ""))
                 print(f"    ⚠️  {tip}")
         print()
 
@@ -386,9 +372,7 @@ def record_manual_checkpoint(
         session_id = f"manual_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
         db.create_session(
             session_id=session_id,
-            transcript_hash=hashlib.md5(
-                json.dumps(commands_text).encode()
-            ).hexdigest(),
+            transcript_hash=hashlib.md5(json.dumps(commands_text).encode()).hexdigest(),
             summary=f"Manual checkpoint: {task_summary}",
             domains=[domain],
             total_cmds=len(parsed_cmds),
@@ -428,10 +412,7 @@ def main():
 
     if action == "extract":
         if len(sys.argv) < 3:
-            print(
-                "Usage: python3 checkpoint_extractor.py"
-                " extract <transcript_file>"
-            )
+            print("Usage: python3 checkpoint_extractor.py" " extract <transcript_file>")
             sys.exit(1)
         extract_from_transcript(sys.argv[2], source_type="file")
 
@@ -457,8 +438,7 @@ def main():
     elif action == "context":
         if len(sys.argv) < 3:
             print(
-                "Usage: python3 checkpoint_extractor.py"
-                " context <domain> [task_type]"
+                "Usage: python3 checkpoint_extractor.py" " context <domain> [task_type]"
             )
             sys.exit(1)
         domain = sys.argv[2]

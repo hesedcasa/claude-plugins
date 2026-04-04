@@ -48,7 +48,7 @@ class ParsedPitfall:
 
     error_type: (
         str  # timeout, element_not_found, navigation_error,
-             # stale_ref, unexpected_state
+        # stale_ref, unexpected_state
     )
     error_message: str
     failed_command: Optional[str] = None
@@ -67,7 +67,7 @@ class ParsedCheckpoint:
     task_summary: str = ""
     task_type: Optional[str] = (
         None  # login, navigate, fill_form, extract_data,
-              # click_flow, verify, search
+        # click_flow, verify, search
     )
     commands: list = field(default_factory=list)
     pitfalls: list = field(default_factory=list)
@@ -141,9 +141,7 @@ AGENT_BROWSER_PATTERN = re.compile(
 CHAINED_CMD_PATTERN = re.compile(r"&&\s*agent-browser\s+")
 
 
-def parse_single_command(
-    cmd_str: str, line_index: int = 0
-) -> list[ParsedCommand]:
+def parse_single_command(cmd_str: str, line_index: int = 0) -> list[ParsedCommand]:
     """
     Parse one or more agent-browser commands from a string.
     Handles chained commands (&&) too.
@@ -174,7 +172,12 @@ def parse_single_command(
                 target = target.strip("\"'")
             url = target
         elif action in (
-            "click", "dblclick", "hover", "check", "uncheck", "scrollintoview"
+            "click",
+            "dblclick",
+            "hover",
+            "check",
+            "uncheck",
+            "scrollintoview",
         ):
             target = rest.split()[0] if rest else None
         elif action == "get":
@@ -182,9 +185,7 @@ def parse_single_command(
             parts_split = rest.split(None, 1)
             # sub-command: text/value/title/url
             value = parts_split[0] if parts_split else None
-            target = (
-                parts_split[1].strip() if len(parts_split) > 1 else None
-            )
+            target = parts_split[1].strip() if len(parts_split) > 1 else None
         elif action == "find":
             # e.g. find role button click --name "Submit"
             target = rest  # pass the full args as target
@@ -199,11 +200,7 @@ def parse_single_command(
             else:
                 parts_split = rest.split(None, 1)
                 target = parts_split[0] if parts_split else None
-                value = (
-                    parts_split[1].strip("\"'")
-                    if len(parts_split) > 1
-                    else None
-                )
+                value = parts_split[1].strip("\"'") if len(parts_split) > 1 else None
         elif action == "select":
             sel_match = re.match(r'(@?\S+)\s+["\'](.+?)["\']', rest)
             if sel_match:
@@ -307,10 +304,7 @@ def extract_commands_from_transcript(
         while j < len(transcript_lines):
             next_line = transcript_lines[j].strip()
             # Stop at next command, empty line after output, or section marker
-            if (
-                "agent-browser" in next_line
-                and AGENT_BROWSER_PATTERN.search(next_line)
-            ):
+            if "agent-browser" in next_line and AGENT_BROWSER_PATTERN.search(next_line):
                 break
             if next_line.startswith("$") or next_line.startswith(">>>"):
                 break
@@ -384,9 +378,7 @@ def extract_commands_from_jsonl(jsonl_path: str) -> list[ParsedCommand]:
                             and block.get("type") == "tool_use"
                             and block.get("name", "").lower() == "bash"
                         ):
-                            cmd_text = (
-                                block.get("input", {}).get("command", "")
-                            )
+                            cmd_text = block.get("input", {}).get("command", "")
                             if (
                                 isinstance(cmd_text, str)
                                 and "agent-browser" in cmd_text
@@ -414,18 +406,17 @@ def extract_commands_from_jsonl(jsonl_path: str) -> list[ParsedCommand]:
                                     for item in output_text
                                     if isinstance(item, dict)
                                 )
-                            if (
-                                isinstance(output_text, str)
-                                and output_text.strip()
-                            ):
+                            if isinstance(output_text, str) and output_text.strip():
                                 last = pending_cmd[-1]
                                 last.output = output_text.strip()
                                 last.output_tokens = len(output_text) // 4
                                 if any(
                                     err in output_text.lower()
                                     for err in [
-                                        "error", "failed",
-                                        "timeout", "not found",
+                                        "error",
+                                        "failed",
+                                        "timeout",
+                                        "not found",
                                     ]
                                 ):
                                     last.success = False
@@ -444,9 +435,7 @@ def extract_commands_from_jsonl(jsonl_path: str) -> list[ParsedCommand]:
                     or entry.get("content", "")
                 )
                 if isinstance(cmd_text, str) and "agent-browser" in cmd_text:
-                    parsed = parse_single_command(
-                        cmd_text, line_index=line_num
-                    )
+                    parsed = parse_single_command(cmd_text, line_index=line_num)
                     if parsed:
                         pending_cmd = parsed
                         commands.extend(parsed)
@@ -486,9 +475,7 @@ def extract_commands_from_jsonl(jsonl_path: str) -> list[ParsedCommand]:
                             and block.get("type") == "tool_use"
                             and block.get("name", "").lower() == "bash"
                         ):
-                            cmd_text = (
-                                block.get("input", {}).get("command", "")
-                            )
+                            cmd_text = block.get("input", {}).get("command", "")
                             if (
                                 isinstance(cmd_text, str)
                                 and "agent-browser" in cmd_text
@@ -797,12 +784,10 @@ def _generate_avoid_tip(error_type: str, cmd: ParsedCommand) -> str:
             " Verify URL is correct and accessible."
         ),
         "unexpected_state": (
-            "Page was not in expected state."
-            " Add a snapshot check before this step."
+            "Page was not in expected state." " Add a snapshot check before this step."
         ),
         "auth_error": (
-            "Authentication required."
-            " Ensure login checkpoint runs first."
+            "Authentication required." " Ensure login checkpoint runs first."
         ),
         "visibility_error": (
             f"Element '{cmd.target}' not visible."

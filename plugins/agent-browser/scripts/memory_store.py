@@ -267,11 +267,7 @@ class BrowserMemoryStore:
         if results["ids"] and results["ids"][0]:
             for i, mem_id in enumerate(results["ids"][0]):
                 meta = results["metadatas"][0][i]
-                dist = (
-                    results["distances"][0][i]
-                    if results.get("distances")
-                    else 0
-                )
+                dist = results["distances"][0][i] if results.get("distances") else 0
 
                 # Filter out low-relevance results
                 # (distance > 1.0 in cosine = barely related)
@@ -286,9 +282,7 @@ class BrowserMemoryStore:
                         metadatas=[
                             {
                                 **meta,
-                                "access_count": (
-                                    meta.get("access_count", 0) + 1
-                                ),
+                                "access_count": (meta.get("access_count", 0) + 1),
                                 "last_accessed": now,
                             }
                         ],
@@ -325,9 +319,7 @@ class BrowserMemoryStore:
         query = task_description or f"browsing and navigating {domain}"
 
         # Domain-specific facts
-        facts = self.recall(
-            query, domain=domain, memory_type="semantic", n_results=5
-        )
+        facts = self.recall(query, domain=domain, memory_type="semantic", n_results=5)
 
         # Past successful workflows (domain-specific)
         episodes = self.recall(
@@ -354,14 +346,10 @@ class BrowserMemoryStore:
         These are navigation instructions, wait strategies, and workarounds.
         """
         query = action_context or f"interacting with elements on {domain}"
-        return self.recall(
-            query, domain=domain, memory_type="procedural", n_results=5
-        )
+        return self.recall(query, domain=domain, memory_type="procedural", n_results=5)
 
     # ─── Context Generation ─────────────────────────────────
-    def generate_context(
-        self, domain: str, task_description: str | None = None
-    ) -> str:
+    def generate_context(self, domain: str, task_description: str | None = None) -> str:
         """
         Generate a compact context block for injection into a browsing session.
         This is the primary output — what gets fed to Claude before browsing.
@@ -393,9 +381,7 @@ class BrowserMemoryStore:
         if episodes:
             lines.append("\n## Proven Workflows:")
             for e in episodes:
-                domain_note = (
-                    f" (from {e.domain})" if e.domain != domain else ""
-                )
+                domain_note = f" (from {e.domain})" if e.domain != domain else ""
                 lines.append(f"- {e.content}{domain_note}")
 
         lines.append(
@@ -413,9 +399,7 @@ class BrowserMemoryStore:
         Reduces its confidence so it ranks lower in future queries.
         """
         try:
-            result = self.collection.get(
-                ids=[memory_id], include=["metadatas"]
-            )
+            result = self.collection.get(ids=[memory_id], include=["metadatas"])
             if result["metadatas"]:
                 meta = result["metadatas"][0]
                 new_conf = max(0.1, meta.get("confidence", 1.0) * 0.5)
@@ -445,10 +429,7 @@ class BrowserMemoryStore:
             try:
                 accessed_dt = datetime.fromisoformat(last_accessed)
                 age_days = (now - accessed_dt).days
-                if (
-                    age_days > days_threshold
-                    and meta.get("confidence", 1.0) > 0.3
-                ):
+                if age_days > days_threshold and meta.get("confidence", 1.0) > 0.3:
                     decay_factor = 0.9 ** (age_days // days_threshold)
                     new_conf = max(0.1, meta["confidence"] * decay_factor)
                     self.collection.update(

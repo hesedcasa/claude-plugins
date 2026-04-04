@@ -5,9 +5,9 @@ import sys
 import time
 import random
 
-PUNCTUATION_PAUSE = {'-', '_', '/', '=', '"'}
-BASE_DELAY_MIN = 0.040   # 40 ms
-BASE_DELAY_MAX = 0.110   # 110 ms
+PUNCTUATION_PAUSE = {"-", "_", "/", "=", '"'}
+BASE_DELAY_MIN = 0.040  # 40 ms
+BASE_DELAY_MAX = 0.110  # 110 ms
 THINK_PROBABILITY = 0.03  # 3% chance per character
 THINK_DELAY_MIN = 0.200  # 200 ms
 THINK_DELAY_MAX = 0.500  # 500 ms
@@ -17,7 +17,7 @@ ENTER_POST_PAUSE = (0.050, 0.150)
 
 def type_human(text: str) -> None:
     for ch in text:
-        if ch == '\n':
+        if ch == "\n":
             time.sleep(random.uniform(*ENTER_PRE_PAUSE))
             sys.stdout.write(ch)
             sys.stdout.flush()
@@ -38,10 +38,10 @@ def type_human(text: str) -> None:
         time.sleep(delay)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if len(sys.argv) > 1:
         # Text passed as a command-line argument
-        type_human(' '.join(sys.argv[1:]) + '\n')
+        type_human(" ".join(sys.argv[1:]) + "\n")
     else:
         # Read from stdin (pipe mode)
         type_human(sys.stdin.read())

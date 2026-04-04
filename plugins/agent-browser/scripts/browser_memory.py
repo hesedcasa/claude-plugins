@@ -230,9 +230,7 @@ def cmd_context_from_env(args):
                     print(f"    - {elem}")
                 if len(snap["elements"]) > 15:
                     extra = len(snap["elements"]) - 15
-                    print(
-                        f"    ... and {extra} more known elements"
-                    )
+                    print(f"    ... and {extra} more known elements")
                 print(
                     "  Re-snapshot only if you expect the page to"
                     " have changed or need refs for interaction."
@@ -269,9 +267,7 @@ def cmd_context(args):
         checkpoint_context = db.generate_warm_context(domain)
         # Only add if it has real content (not just the header)
         content_lines = (
-            checkpoint_context.strip().split("\n")
-            if checkpoint_context
-            else []
+            checkpoint_context.strip().split("\n") if checkpoint_context else []
         )
         if checkpoint_context and len(content_lines) > 2:
             sections.append(checkpoint_context)
@@ -298,9 +294,7 @@ def cmd_extract_session(args):
 
         transcript_path = find_latest_transcript()
         if transcript_path:
-            result = extract_from_transcript(
-                transcript_path, source_type="file"
-            )
+            result = extract_from_transcript(transcript_path, source_type="file")
 
             # Step 2: Extract semantic memories from the checkpoints
             store = _get_store()
@@ -394,9 +388,7 @@ def _extract_memories_from_result(store, result, transcript_path):
                             ):
                                 value = "[REDACTED]"
                             semantic_target = _replace_refs(target, ref_map)
-                            steps.append(
-                                f"{action} {semantic_target} '{value}'"
-                            )
+                            steps.append(f"{action} {semantic_target} '{value}'")
                         elif action in (
                             "open",
                             "click",
@@ -409,9 +401,7 @@ def _extract_memories_from_result(store, result, transcript_path):
                             steps.append(f"{action} {semantic_target}".strip())
 
                     if steps:
-                        workflow = (
-                            f"{task_summary}: {' → '.join(steps[:10])}"
-                        )
+                        workflow = f"{task_summary}: {' → '.join(steps[:10])}"
                         store.save(
                             content=workflow,
                             type="episodic",
@@ -426,9 +416,7 @@ def _extract_memories_from_result(store, result, transcript_path):
             entry_snap = cp.get("entry_snapshot", "")
             if entry_snap and len(entry_snap) > 50:
                 # Extract high-level page structure info
-                fact = _summarize_snapshot_fact(
-                    domain, path, entry_snap, task_type
-                )
+                fact = _summarize_snapshot_fact(domain, path, entry_snap, task_type)
                 if fact:
                     store.save(
                         content=fact,
@@ -667,10 +655,7 @@ def cmd_save(args):
     content = " ".join(args[2:])
 
     if memory_type not in ("semantic", "procedural", "episodic"):
-        print(
-            f"Invalid type: {memory_type}."
-            " Use semantic, procedural, or episodic."
-        )
+        print(f"Invalid type: {memory_type}." " Use semantic, procedural, or episodic.")
         return
 
     store = _get_store()
@@ -678,9 +663,7 @@ def cmd_save(args):
         print("ChromaDB not available. Install with: pip install chromadb")
         return
 
-    mem_id = store.save(
-        content, type=memory_type, domain=domain, source="user"
-    )
+    mem_id = store.save(content, type=memory_type, domain=domain, source="user")
     print(f"Saved {memory_type} memory: {mem_id}")
 
 
@@ -698,9 +681,7 @@ def cmd_stats(args):
         print(f"  Semantic (facts): {stats['semantic']}")
         print(f"  Procedural (tips): {stats['procedural']}")
         print(f"  Episodic (workflows): {stats['episodic']}")
-        domains_str = (
-            ", ".join(stats["domains"]) if stats["domains"] else "none"
-        )
+        domains_str = ", ".join(stats["domains"]) if stats["domains"] else "none"
         print(f"  Domains: {domains_str}")
     else:
         print("ChromaDB: not available (install with: pip install chromadb)")
@@ -799,10 +780,7 @@ def cmd_domain_info(args):
                 print(f"\n{type_icon} {mtype.upper()} memories:")
                 for r in records:
                     print(f"  - {r.content}")
-                    print(
-                        f"    conf={r.confidence:.0%}"
-                        f" accessed={r.access_count}x"
-                    )
+                    print(f"    conf={r.confidence:.0%}" f" accessed={r.access_count}x")
 
 
 def cmd_maintain(args):
@@ -816,9 +794,7 @@ def cmd_maintain(args):
     decayed = store.decay_stale_memories(days_threshold=30)
     deleted = store.delete_low_confidence(threshold=0.15)
 
-    print(
-        f"Maintenance complete: {decayed} memories decayed, {deleted} removed"
-    )
+    print(f"Maintenance complete: {decayed} memories decayed, {deleted} removed")
 
 
 def cmd_decay(args):
