@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.5.0](https://github.com/hesedcasa/claude-plugins/compare/v1.4.0...v1.5.0) (2026-04-04)
+
+
+### 🎉 Features
+
+* add agent-browser hooks and scripts, remove standalone plugins ([#6](https://github.com/hesedcasa/claude-plugins/issues/6)) ([356c510](https://github.com/hesedcasa/claude-plugins/commit/356c510c88e4fe087276e938f15af789e3e3a4e7))
+* add terminal-recorder plugin ([#7](https://github.com/hesedcasa/claude-plugins/issues/7)) ([6abc950](https://github.com/hesedcasa/claude-plugins/commit/6abc950f9761204ade657bd822fb51fd4f71d282))
+* **agent-browser:** add agentic memory system for learned navigation patterns ([#9](https://github.com/hesedcasa/claude-plugins/issues/9)) ([54641e2](https://github.com/hesedcasa/claude-plugins/commit/54641e23c4dc2caaeee366cfd9375ed3ae51a3ec))
+
 ## [1.4.0](https://github.com/hesedcasa/claude-plugins/compare/v1.3.0...v1.4.0) (2026-01-14)
 
 
