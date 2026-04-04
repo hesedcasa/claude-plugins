@@ -16,7 +16,7 @@
   "packages": {
     ".": {
       "changelog-path": "CHANGELOG.md",
-      "release-type": "simple",
+      "release-type": "node",
       "extra-files": [
         "README.md",
         {

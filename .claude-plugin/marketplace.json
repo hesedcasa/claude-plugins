@@ -11,8 +11,7 @@
       "name": "agent-browser",
       "description": "Automates browser interactions for web testing, form filling, screenshots, and data extraction",
       "author": {
-        "name": "Hesed",
-        "email": "support@hesed.casa"
+        "name": "Hesed"
       },
       "category": "development",
       "source": "./plugins/agent-browser",
