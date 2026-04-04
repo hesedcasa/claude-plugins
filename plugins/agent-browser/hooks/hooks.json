@@ -3,16 +3,35 @@
     "PreToolUse": [
       {
         "matcher": "bash",
-        "command": "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/checkpoint_extractor.py context $(echo \"$TOOL_INPUT\" | grep -oP 'agent-browser\\s+open\\s+\\Khttps?://[^/\\s]+' | head -1) 2>/dev/null || true",
-        "description": "Inject checkpoint knowledge before agent-browser navigation. Provides learned command sequences, pitfalls to avoid, and navigation shortcuts from prior sessions.",
-        "timeout": 3000
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"$TOOL_INPUT\" | grep -q 'agent-browser open' && python3 ${CLAUDE_PLUGIN_ROOT}/scripts/browser_memory.py context-from-env 2>/dev/null || true",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [      {
+        "matcher": "bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"$TOOL_INPUT\" | grep -q 'agent-browser' && python3 ${CLAUDE_PLUGIN_ROOT}/scripts/browser_memory.py update-from-env 2>/dev/null || true",
+            "timeout": 5000
+          }
+        ]
       }
     ],
     "Stop": [
       {
-        "command": "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/checkpoint_extractor.py extract-latest 2>/dev/null || true",
-        "description": "After session ends: extract agent-browser commands from transcript, group into task checkpoints, detect errors/pitfalls, and store in knowledge database for future sessions.",
-        "timeout": 10000
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/browser_memory.py extract-session 2>/dev/null; python3 ${CLAUDE_PLUGIN_ROOT}/scripts/browser_memory.py maintain 2>/dev/null || true",
+            "timeout": 15000
+          }
+        ]
       }
     ]
   }

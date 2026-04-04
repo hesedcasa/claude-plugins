@@ -47,7 +47,8 @@ class ParsedPitfall:
     """An error that occurred and how it was handled."""
 
     error_type: (
-        str  # timeout, element_not_found, navigation_error, stale_ref, unexpected_state
+        str  # timeout, element_not_found, navigation_error,
+        # stale_ref, unexpected_state
     )
     error_message: str
     failed_command: Optional[str] = None
@@ -65,7 +66,8 @@ class ParsedCheckpoint:
     full_url: Optional[str] = None
     task_summary: str = ""
     task_type: Optional[str] = (
-        None  # login, navigate, fill_form, extract_data, click_flow, verify, search
+        None  # login, navigate, fill_form, extract_data,
+        # click_flow, verify, search
     )
     commands: list = field(default_factory=list)
     pitfalls: list = field(default_factory=list)
@@ -95,6 +97,7 @@ class ParsedCheckpoint:
 AGENT_BROWSER_ACTIONS = {
     "open",
     "click",
+    "dblclick",
     "fill",
     "snapshot",
     "screenshot",
@@ -104,6 +107,7 @@ AGENT_BROWSER_ACTIONS = {
     "uncheck",
     "hover",
     "scroll",
+    "scrollintoview",
     "press",
     "type",
     "close",
@@ -118,9 +122,12 @@ AGENT_BROWSER_ACTIONS = {
     "console",
     "install",
     "session",
+    "state",
     "set",
     "auth",
     "tabs",
+    "find",
+    "get",
 }
 
 AGENT_BROWSER_PATTERN = re.compile(
@@ -150,6 +157,9 @@ def parse_single_command(cmd_str: str, line_index: int = 0) -> list[ParsedComman
             continue
 
         action = m.group(1).lower()
+        if action not in AGENT_BROWSER_ACTIONS:
+            # Skip false positives (e.g., "agent-browser" in comments)
+            continue
         rest = (m.group(2) or "").strip()
 
         target = None
@@ -158,9 +168,30 @@ def parse_single_command(cmd_str: str, line_index: int = 0) -> list[ParsedComman
 
         if action == "open":
             target = rest.split()[0] if rest else None
+            if target:
+                target = target.strip("\"'")
             url = target
-        elif action in ("click", "hover", "check", "uncheck"):
+        elif action in (
+            "click",
+            "dblclick",
+            "hover",
+            "check",
+            "uncheck",
+            "scrollintoview",
+        ):
             target = rest.split()[0] if rest else None
+        elif action == "get":
+            # e.g. get text @e1 / get value @e1 / get title / get url
+            parts_split = rest.split(None, 1)
+            # sub-command: text/value/title/url
+            value = parts_split[0] if parts_split else None
+            target = parts_split[1].strip() if len(parts_split) > 1 else None
+        elif action == "find":
+            # e.g. find role button click --name "Submit"
+            target = rest  # pass the full args as target
+        elif action == "state":
+            # e.g. state save auth.json / state load auth.json
+            target = rest
         elif action == "fill":
             fill_match = re.match(r'(@?\S+)\s+["\'](.+?)["\']', rest)
             if fill_match:
@@ -314,9 +345,11 @@ def extract_commands_from_jsonl(jsonl_path: str) -> list[ParsedCommand]:
     """
     Extract agent-browser commands from Claude Code's JSONL transcript.
 
-    Claude Code transcripts use this structure:
-    {"type": "tool_use", "name": "bash", "input": {"command": "..."}}
-    {"type": "tool_result", "content": "..."}
+    Claude Code transcript format (each line is a JSON object):
+    - Assistant entry: {"type": "assistant", "message": {..., "content":
+        [{"type": "tool_use", "name": "Bash", "input": {"command": "..."}}]}}
+    - User/result entry: {"type": "user", "message": {..., "content":
+        [{"type": "tool_result", "tool_use_id": "...", "content": "..."}]}}
     """
     commands = []
     pending_cmd = None
@@ -330,14 +363,72 @@ def extract_commands_from_jsonl(jsonl_path: str) -> list[ParsedCommand]:
             try:
                 entry = json.loads(line)
             except json.JSONDecodeError:
-                # Not JSONL — might be plain text
                 continue
 
-            # Handle different JSONL structures
             entry_type = entry.get("type", "")
 
-            # Tool use (command execution)
-            if entry_type in ("tool_use", "bash") or entry.get("name") == "bash":
+            # Real Claude Code format: assistant message wraps content
+            # under "message" key
+            if entry_type == "assistant":
+                content = entry.get("message", {}).get("content", "")
+                if isinstance(content, list):
+                    for block in content:
+                        if (
+                            isinstance(block, dict)
+                            and block.get("type") == "tool_use"
+                            and block.get("name", "").lower() == "bash"
+                        ):
+                            cmd_text = block.get("input", {}).get("command", "")
+                            if (
+                                isinstance(cmd_text, str)
+                                and "agent-browser" in cmd_text
+                            ):
+                                parsed = parse_single_command(
+                                    cmd_text, line_index=line_num
+                                )
+                                if parsed:
+                                    pending_cmd = parsed
+                                    commands.extend(parsed)
+
+            # Real Claude Code format: tool results inside "user" entries
+            elif entry_type == "user" and pending_cmd:
+                content = entry.get("message", {}).get("content", "")
+                if isinstance(content, list):
+                    for block in content:
+                        if (
+                            isinstance(block, dict)
+                            and block.get("type") == "tool_result"
+                        ):
+                            output_text = block.get("content", "")
+                            if isinstance(output_text, list):
+                                output_text = "\n".join(
+                                    item.get("text", "")
+                                    for item in output_text
+                                    if isinstance(item, dict)
+                                )
+                            if isinstance(output_text, str) and output_text.strip():
+                                last = pending_cmd[-1]
+                                last.output = output_text.strip()
+                                last.output_tokens = len(output_text) // 4
+                                if any(
+                                    err in output_text.lower()
+                                    for err in [
+                                        "error",
+                                        "failed",
+                                        "timeout",
+                                        "not found",
+                                    ]
+                                ):
+                                    last.success = False
+                                    last.error = output_text.strip()
+                                pending_cmd = None
+                                break
+
+            # Legacy/alternative formats: direct tool_use or tool_result
+            elif (
+                entry_type in ("tool_use", "bash")
+                or entry.get("name", "").lower() == "bash"
+            ):
                 cmd_text = (
                     entry.get("input", {}).get("command", "")
                     or entry.get("command", "")
@@ -349,7 +440,6 @@ def extract_commands_from_jsonl(jsonl_path: str) -> list[ParsedCommand]:
                         pending_cmd = parsed
                         commands.extend(parsed)
 
-            # Tool result (output)
             elif entry_type in ("tool_result", "result") and pending_cmd:
                 output_text = (
                     entry.get("content", "")
@@ -363,7 +453,6 @@ def extract_commands_from_jsonl(jsonl_path: str) -> list[ParsedCommand]:
                         if isinstance(item, dict)
                     )
                 if isinstance(output_text, str) and output_text.strip():
-                    # Assign to last pending command
                     last = pending_cmd[-1]
                     last.output = output_text.strip()
                     last.output_tokens = len(output_text) // 4
@@ -375,18 +464,22 @@ def extract_commands_from_jsonl(jsonl_path: str) -> list[ParsedCommand]:
                         last.error = output_text.strip()
                 pending_cmd = None
 
-            # Assistant message — look for agent-browser commands in code blocks
-            elif entry_type in ("assistant", "message"):
+            # Fallback: assistant message with content directly
+            # (no "message" wrapper)
+            elif entry_type in ("message",):
                 content = entry.get("content", "")
                 if isinstance(content, list):
                     for block in content:
                         if (
                             isinstance(block, dict)
                             and block.get("type") == "tool_use"
-                            and block.get("name") == "bash"
+                            and block.get("name", "").lower() == "bash"
                         ):
                             cmd_text = block.get("input", {}).get("command", "")
-                            if "agent-browser" in cmd_text:
+                            if (
+                                isinstance(cmd_text, str)
+                                and "agent-browser" in cmd_text
+                            ):
                                 parsed = parse_single_command(
                                     cmd_text, line_index=line_num
                                 )
@@ -429,7 +522,7 @@ class URLTracker:
 
     def update(self, command: ParsedCommand):
         if command.action == "open" and command.target:
-            url = command.target
+            url = command.target.strip("\"'")
             if not url.startswith("http"):
                 url = f"https://{url}"
             try:
@@ -504,7 +597,7 @@ def infer_task_type(commands: list[ParsedCommand]) -> str:
     if not any(scores.values()):
         return "navigate"
 
-    return max(scores, key=scores.get)
+    return max(scores, key=lambda k: scores[k])
 
 
 def generate_task_summary(
@@ -568,10 +661,9 @@ def group_commands_into_checkpoints(
     current_group = []
     current_domain = None
     current_path = None
-    last_snapshot = None
 
     def flush_group():
-        nonlocal current_group, last_snapshot
+        nonlocal current_group
         if not current_group:
             return
 
@@ -675,14 +767,34 @@ def group_commands_into_checkpoints(
 def _generate_avoid_tip(error_type: str, cmd: ParsedCommand) -> str:
     """Generate a human-readable tip for avoiding this error in the future."""
     tips = {
-        "timeout": f"Add explicit wait before '{cmd.action}'. Use: agent-browser wait --load networkidle",
-        "element_not_found": f"Element '{cmd.target}' may have changed. Take a fresh snapshot before interacting.",
-        "stale_ref": f"Ref '{cmd.target}' became stale. Re-snapshot the page to get updated refs.",
-        "navigation_error": f"Navigation failed for '{cmd.target}'. Verify URL is correct and accessible.",
-        "unexpected_state": f"Page was not in expected state. Add a snapshot check before this step.",
-        "auth_error": f"Authentication required. Ensure login checkpoint runs first.",
-        "visibility_error": f"Element '{cmd.target}' not visible. Try scrolling to it or waiting for it to appear.",
+        "timeout": (
+            f"Add explicit wait before '{cmd.action}'."
+            " Use: agent-browser wait --load networkidle"
+        ),
+        "element_not_found": (
+            f"Element '{cmd.target}' may have changed."
+            " Take a fresh snapshot before interacting."
+        ),
+        "stale_ref": (
+            f"Ref '{cmd.target}' became stale."
+            " Re-snapshot the page to get updated refs."
+        ),
+        "navigation_error": (
+            f"Navigation failed for '{cmd.target}'."
+            " Verify URL is correct and accessible."
+        ),
+        "unexpected_state": (
+            "Page was not in expected state." " Add a snapshot check before this step."
+        ),
+        "auth_error": (
+            "Authentication required." " Ensure login checkpoint runs first."
+        ),
+        "visibility_error": (
+            f"Element '{cmd.target}' not visible."
+            " Try scrolling to it or waiting for it to appear."
+        ),
     }
     return tips.get(
-        error_type, f"Command '{cmd.raw}' failed. Review page state before retrying."
+        error_type,
+        f"Command '{cmd.raw}' failed. Review page state before retrying.",
     )

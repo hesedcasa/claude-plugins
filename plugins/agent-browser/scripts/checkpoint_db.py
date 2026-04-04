@@ -17,7 +17,6 @@ Schema design:
 import json
 import os
 import sqlite3
-from datetime import datetime
 
 DB_DIR = os.environ.get(
     "CHECKPOINT_DB_DIR", os.path.expanduser("~/.ai-browser-workflow")
@@ -42,17 +41,18 @@ CREATE TABLE IF NOT EXISTS checkpoints (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id      TEXT NOT NULL,
     domain          TEXT NOT NULL,
-    path            TEXT,                   -- URL path where task was performed
+    path            TEXT,                   -- URL path for task
     full_url        TEXT,
-    task_summary    TEXT NOT NULL,           -- e.g. "Login to dashboard", "Search for user"
-    task_type       TEXT,                   -- login, navigate, fill_form, extract_data, click_flow, verify, search
+    task_summary    TEXT NOT NULL,           -- e.g. "Login to dashboard"
+    task_type       TEXT,                   -- login, navigate, fill_form,
+                                            -- extract_data, click_flow, verify
 
     -- The full command sequence for replay
-    commands_json   TEXT NOT NULL,           -- JSON array of {cmd, output, success, tokens_est}
+    commands_json   TEXT NOT NULL,           -- JSON array of commands
     command_count   INTEGER DEFAULT 0,
 
     -- What was learned
-    pitfalls_json   TEXT,                   -- JSON array of {error, cause, resolution, avoid_tip}
+    pitfalls_json   TEXT,                   -- JSON array of pitfalls
     success         INTEGER DEFAULT 1,      -- overall task succeeded?
 
     -- Timing & cost
@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS commands (
 
     -- The raw command
     raw_command     TEXT NOT NULL,           -- exact command string
-    action          TEXT NOT NULL,           -- open, click, fill, snapshot, wait, etc.
+    action          TEXT NOT NULL,           -- open, click, fill, etc.
     target          TEXT,                   -- @e1, URL, selector
     value           TEXT,                   -- fill value, wait condition
 
@@ -107,7 +107,8 @@ CREATE TABLE IF NOT EXISTS pitfalls (
     path            TEXT,
 
     -- What went wrong
-    error_type      TEXT NOT NULL,           -- timeout, element_not_found, navigation_error, stale_ref, unexpected_state
+    error_type      TEXT NOT NULL,           -- timeout, element_not_found,
+                                            -- navigation_error, stale_ref
     error_message   TEXT NOT NULL,
     failed_command  TEXT,                   -- the command that triggered it
 
@@ -116,7 +117,7 @@ CREATE TABLE IF NOT EXISTS pitfalls (
     resolved        INTEGER DEFAULT 0,
 
     -- Advice for future sessions
-    avoid_tip       TEXT,                   -- human-readable tip: "Wait for networkidle before clicking submit"
+    avoid_tip       TEXT,                   -- human-readable avoidance tip
 
     -- Frequency tracking
     occurrence_count INTEGER DEFAULT 1,
@@ -140,15 +141,29 @@ CREATE TABLE IF NOT EXISTS navigation_map (
     UNIQUE(domain, from_path, to_path, action_type)
 );
 
+-- Page snapshots: known element labels per URL for context injection
+CREATE TABLE IF NOT EXISTS page_snapshots (
+    domain          TEXT NOT NULL,
+    path            TEXT NOT NULL,
+    elements_json   TEXT NOT NULL,  -- JSON array of "role \"label\"" strings
+    snapshot_hash   TEXT,           -- MD5 of raw snapshot for change detection
+    last_seen       TEXT DEFAULT (datetime('now')),
+    visit_count     INTEGER DEFAULT 1,
+    PRIMARY KEY (domain, path)
+);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_checkpoints_domain ON checkpoints(domain);
-CREATE INDEX IF NOT EXISTS idx_checkpoints_task ON checkpoints(domain, task_type);
+CREATE INDEX IF NOT EXISTS idx_checkpoints_task
+    ON checkpoints(domain, task_type);
 CREATE INDEX IF NOT EXISTS idx_checkpoints_session ON checkpoints(session_id);
 CREATE INDEX IF NOT EXISTS idx_commands_checkpoint ON commands(checkpoint_id);
 CREATE INDEX IF NOT EXISTS idx_pitfalls_domain ON pitfalls(domain);
 CREATE INDEX IF NOT EXISTS idx_pitfalls_type ON pitfalls(error_type);
 CREATE INDEX IF NOT EXISTS idx_navmap_domain ON navigation_map(domain);
-CREATE INDEX IF NOT EXISTS idx_navmap_from ON navigation_map(domain, from_path);
+CREATE INDEX IF NOT EXISTS idx_navmap_from
+    ON navigation_map(domain, from_path);
+CREATE INDEX IF NOT EXISTS idx_snapshots_domain ON page_snapshots(domain);
 """
 
 
@@ -164,7 +179,6 @@ class CheckpointDB:
         self.conn.commit()
 
     # ─── Sessions ──────────────────────────────────────────
-
     def create_session(
         self,
         session_id,
@@ -177,7 +191,10 @@ class CheckpointDB:
     ):
         self.conn.execute(
             """
-            INSERT OR IGNORE INTO sessions (id, transcript_hash, source_file, summary, domains_visited, total_commands, total_errors)
+            INSERT OR IGNORE INTO sessions (
+                id, transcript_hash, source_file, summary,
+                domains_visited, total_commands, total_errors
+            )
             VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
             (
@@ -195,12 +212,12 @@ class CheckpointDB:
 
     def session_exists(self, transcript_hash):
         row = self.conn.execute(
-            "SELECT id FROM sessions WHERE transcript_hash = ?", (transcript_hash,)
+            "SELECT id FROM sessions WHERE transcript_hash = ?",
+            (transcript_hash,),
         ).fetchone()
         return dict(row)["id"] if row else None
 
     # ─── Checkpoints ───────────────────────────────────────
-
     def save_checkpoint(self, session_id, checkpoint):
         """Save a single checkpoint. Returns the checkpoint ID."""
         cur = self.conn.execute(
@@ -237,8 +254,9 @@ class CheckpointDB:
             self.conn.execute(
                 """
                 INSERT INTO commands (
-                    checkpoint_id, sequence_num, raw_command, action, target, value,
-                    output, output_tokens, success, error_message, url_at_execution
+                    checkpoint_id, sequence_num, raw_command, action,
+                    target, value, output, output_tokens, success,
+                    error_message, url_at_execution
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 (
@@ -283,13 +301,13 @@ class CheckpointDB:
         return cp_id
 
     # ─── Navigation Map ────────────────────────────────────
-
     def record_navigation(
         self, domain, from_path, to_path, link_text=None, action_type="click"
     ):
         self.conn.execute(
             """
-            INSERT INTO navigation_map (domain, from_path, to_path, link_text, action_type)
+            INSERT INTO navigation_map
+                (domain, from_path, to_path, link_text, action_type)
             VALUES (?, ?, ?, ?, ?)
             ON CONFLICT(domain, from_path, to_path, action_type) DO UPDATE SET
                 times_traversed = times_traversed + 1,
@@ -301,16 +319,18 @@ class CheckpointDB:
         self.conn.commit()
 
     # ─── Queries ───────────────────────────────────────────
-
     def get_checkpoints_for_domain(self, domain, task_type=None):
         if task_type:
             rows = self.conn.execute(
-                "SELECT * FROM checkpoints WHERE domain = ? AND task_type = ? ORDER BY reliability DESC, created_at DESC",
+                "SELECT * FROM checkpoints"
+                " WHERE domain = ? AND task_type = ?"
+                " ORDER BY reliability DESC, created_at DESC",
                 (domain, task_type),
             ).fetchall()
         else:
             rows = self.conn.execute(
-                "SELECT * FROM checkpoints WHERE domain = ? ORDER BY created_at DESC",
+                "SELECT * FROM checkpoints"
+                " WHERE domain = ? ORDER BY created_at DESC",
                 (domain,),
             ).fetchall()
         return [dict(r) for r in rows]
@@ -318,8 +338,8 @@ class CheckpointDB:
     def get_pitfalls_for_domain(self, domain):
         rows = self.conn.execute(
             """
-            SELECT error_type, error_message, failed_command, resolution, avoid_tip,
-                   occurrence_count, path
+            SELECT error_type, error_message, failed_command,
+                   resolution, avoid_tip, occurrence_count, path
             FROM pitfalls WHERE domain = ?
             ORDER BY occurrence_count DESC
         """,
@@ -356,7 +376,8 @@ class CheckpointDB:
             SELECT domain,
                    COUNT(*) as checkpoint_count,
                    SUM(command_count) as total_commands,
-                   AVG(CASE WHEN success THEN 1.0 ELSE 0.0 END) as success_rate,
+                   AVG(CASE WHEN success THEN 1.0 ELSE 0.0 END)
+                       as success_rate,
                    GROUP_CONCAT(DISTINCT task_type) as task_types
             FROM checkpoints GROUP BY domain ORDER BY checkpoint_count DESC
         """).fetchall()
@@ -386,7 +407,8 @@ class CheckpointDB:
                 lines.append(f"Path: {cp.get('path', '/')}")
                 lines.append(f"Steps: {cmd_summary}")
                 lines.append(
-                    f"Reliability: {cp['reliability'] * 100:.0f}% ({cp['command_count']} commands)"
+                    f"Reliability: {cp['reliability'] * 100:.0f}%"
+                    f" ({cp['command_count']} commands)"
                 )
 
         # Pitfalls to avoid
@@ -410,10 +432,50 @@ class CheckpointDB:
             for n in nav[:10]:
                 label = f' "{n["link_text"]}"' if n.get("link_text") else ""
                 lines.append(
-                    f"  {n['from_path']} →{label} {n['to_path']} (used {n['times_traversed']}x)"
+                    f"  {n['from_path']} →{label} {n['to_path']}"
+                    f" (used {n['times_traversed']}x)"
                 )
 
         return "\n".join(lines)
+
+    # ─── Page Snapshots ────────────────────────────────────
+    def save_page_snapshot(
+        self,
+        domain: str,
+        path: str,
+        elements: list,
+        snapshot_hash: str | None = None,
+    ):
+        """Upsert the known element list for a URL (snapshot diffing)."""
+        self.conn.execute(
+            """
+            INSERT INTO page_snapshots (
+                domain, path, elements_json, snapshot_hash,
+                last_seen, visit_count
+            )
+            VALUES (?, ?, ?, ?, datetime('now'), 1)
+            ON CONFLICT(domain, path) DO UPDATE SET
+                elements_json = excluded.elements_json,
+                snapshot_hash = excluded.snapshot_hash,
+                last_seen = datetime('now'),
+                visit_count = visit_count + 1
+            """,
+            (domain, path, json.dumps(elements), snapshot_hash),
+        )
+        self.conn.commit()
+
+    def get_page_snapshot(self, domain: str, path: str) -> dict | None:
+        """Return known elements for a URL, or None if never seen."""
+        row = self.conn.execute(
+            "SELECT elements_json, snapshot_hash, last_seen, visit_count"
+            " FROM page_snapshots WHERE domain = ? AND path = ?",
+            (domain, path),
+        ).fetchone()
+        if not row:
+            return None
+        r = dict(row)
+        r["elements"] = json.loads(r["elements_json"])
+        return r
 
     def record_replay(self, checkpoint_id, success):
         """Update replay stats after a checkpoint is replayed."""
@@ -430,7 +492,10 @@ class CheckpointDB:
         new_rel = alpha * (1.0 if success else 0.0) + (1 - alpha) * cp["reliability"]
         self.conn.execute(
             """
-            UPDATE checkpoints SET replay_count = ?, reliability = ?, last_replayed = datetime('now'), updated_at = datetime('now')
+            UPDATE checkpoints
+            SET replay_count = ?, reliability = ?,
+                last_replayed = datetime('now'),
+                updated_at = datetime('now')
             WHERE id = ?
         """,
             (count, new_rel, checkpoint_id),
@@ -438,8 +503,7 @@ class CheckpointDB:
         self.conn.commit()
 
     def get_stats(self):
-        return dict(
-            self.conn.execute("""
+        return dict(self.conn.execute("""
             SELECT
                 (SELECT COUNT(*) FROM sessions) as sessions,
                 (SELECT COUNT(*) FROM checkpoints) as checkpoints,
@@ -447,9 +511,10 @@ class CheckpointDB:
                 (SELECT COUNT(*) FROM pitfalls) as pitfalls,
                 (SELECT COUNT(DISTINCT domain) FROM checkpoints) as domains,
                 (SELECT COUNT(*) FROM navigation_map) as nav_edges,
-                (SELECT AVG(CASE WHEN success THEN 1.0 ELSE 0.0 END) FROM checkpoints) as avg_success_rate
-        """).fetchone()
-        )
+                (SELECT COUNT(*) FROM page_snapshots) as known_pages,
+                (SELECT AVG(CASE WHEN success THEN 1.0 ELSE 0.0 END)
+                 FROM checkpoints) as avg_success_rate
+        """).fetchone())
 
     def close(self):
         self.conn.close()
@@ -466,7 +531,9 @@ if __name__ == "__main__":
     elif cmd == "domains":
         for d in db.get_all_domains():
             print(
-                f"  {d['domain']}: {d['checkpoint_count']} checkpoints, {d['task_types']}, {d['success_rate'] * 100:.0f}% success"
+                f"  {d['domain']}: {d['checkpoint_count']} checkpoints,"
+                f" {d['task_types']},"
+                f" {d['success_rate'] * 100:.0f}% success"
             )
     elif cmd == "context" and len(sys.argv) > 2:
         print(
@@ -476,11 +543,13 @@ if __name__ == "__main__":
         )
     elif cmd == "pitfalls" and len(sys.argv) > 2:
         for p in db.get_pitfalls_for_domain(sys.argv[2]):
-            print(f"  [{p['error_type']}] {p['avoid_tip'] or p['error_message']}")
+            msg = p["avoid_tip"] or p["error_message"]
+            print(f"  [{p['error_type']}] {msg}")
             if p.get("failed_command"):
                 print(f"    cmd: {p['failed_command']}")
     else:
         print(
-            "Usage: python3 checkpoint_db.py [stats|domains|context <domain>|pitfalls <domain>]"
+            "Usage: python3 checkpoint_db.py"
+            " [stats|domains|context <domain>|pitfalls <domain>]"
         )
     db.close()
