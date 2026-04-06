@@ -4,317 +4,120 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a collection of custom Claude Code plugins (skills) that extend Claude's capabilities with external integrations. It contains 7 plugins:
+A collection of Claude Code plugins that extend Claude's capabilities. Currently contains 2 plugins:
 
-- **context7** - Search and retrieve documentation from Context7
-- **google-chat** - Send messages to Google Chat spaces
-- **jira** - Query, create, update, and manage Jira issues
-- **confluence** - Interact with Confluence pages, spaces, and comments
-- **sql** - Execute SQL queries on MySQL and PostgreSQL databases
-- **sentry** - Query, analyze, and manage Sentry issues, events, and projects
-- **terminal-recorder** - Record terminal sessions and convert them to animated GIF files
+- **agent-browser** - Automates browser interactions with agentic memory (learns navigation patterns across sessions)
+- **terminal-recorder** - Records terminal sessions and converts them to animated GIF files
 
 ## Repository Structure
 
 ```
 claude-plugins/
 ├── .claude-plugin/
-│   └── marketplace.json          # Plugin marketplace configuration
+│   └── marketplace.json          # Plugin marketplace config (version bumped by release-please)
 ├── plugins/
-│   ├── context7/
-│   │   ├── .claude-plugin/
-│   │   │   └── plugin.json
-│   │   └── skills/context7/
-│   │       ├── SKILL.md
-│   ├── google-chat/
-│   │   ├── .claude-plugin/
-│   │   │   └── plugin.json
-│   │   └── skills/google-chat/
-│   │       ├── SKILL.md
-│   │       ├── config.jsonc      # API keys and tokens (gitignored)
-│   │       └── scripts/
-│   │           ├── new_message.py
-│   │           ├── reply_message.py
-│   │           └── jsonc.py
-│   ├── jira/
-│   │   ├── .claude-plugin/
-│   │   │   └── plugin.json
-│   │   └── skills/jira/
-│   │       ├── SKILL.md
-│   │       └── scripts/
-│   │           └── get-ticket-summary.sh
-│   ├── confluence/
-│   │   ├── .claude-plugin/
-│   │   │   └── plugin.json
-│   │   └── skills/confluence/
-│   │       ├── SKILL.md
-│   │       └── scripts/
-│   ├── sql/
-│   │   ├── .claude-plugin/
-│   │   │   └── plugin.json
-│   │   └── skills/sql/
-│   │       └── SKILL.md
-│   ├── sentry/
-│   │   ├── .claude-plugin/
-│   │   │   └── plugin.json
-│   │   └── skills/sentry/
-│   │       ├── SKILL.md
-│   │       └── scripts/
+│   ├── agent-browser/
+│   │   ├── .claude-plugin/plugin.json
+│   │   ├── hooks/hooks.json      # PreToolUse/PostToolUse/Stop hooks for memory system
+│   │   ├── scripts/              # Memory system Python scripts
+│   │   └── skills/agent-browser/SKILL.md
 │   └── terminal-recorder/
-│       ├── .claude-plugin/
-│       │   └── plugin.json
+│       ├── .claude-plugin/plugin.json
 │       └── skills/terminal-recorder/
-│           └── SKILL.md
-├── .claude/                       # Local configuration (gitignored)
-│   ├── sql-config.local.md       # Database credentials
-│   ├── atlassian-config.local.md # Jira and Confluence credentials
-│   └── sentry-connector.local.md # Sentry credentials
+│           ├── SKILL.md
+│           └── scripts/type-human.py
+├── .claude-plugin/marketplace.json
 ├── .github/workflows/
-│   ├── release-please.yml         # Automated releases
-│   └── convetional-commit.yml    # PR validation
-├── release-please-config.json     # Release configuration
-└── CHANGELOG.md                   # Auto-generated changelog
+│   ├── release-please.yml        # Automated releases
+│   └── convetional-commit.yml    # PR title validation
+├── install-lint-tools.sh         # Installs shellcheck, flake8, black
+├── package.json                  # Dev toolchain (eslint, prettier, husky)
+├── release-please-config.json
+└── version.txt
 ```
 
 ## Plugin Architecture
 
-Each plugin follows the Claude Code plugin structure:
+Each plugin follows this structure:
 
 - **`.claude-plugin/plugin.json`** - Plugin metadata (name, description, author)
-- **`skills/<name>/SKILL.md`** - Detailed documentation with:
-  - When to use the skill
-  - Prerequisites and setup instructions
-  - Available commands and usage patterns
-  - Configuration examples
-- **`skills/<name>/scripts/`** - Implementation scripts (Python/bash)
-- **Configuration files** - `.local.md` or `config.jsonc` files for credentials (gitignored)
+- **`skills/<name>/SKILL.md`** - Skill documentation with frontmatter (trigger conditions, allowed tools)
+- **`scripts/`** - Implementation scripts (Python/bash)
+- **`hooks/hooks.json`** - Optional event hooks (PreToolUse, PostToolUse, Stop)
 
 ## Development Workflow
 
-### Required Global Tools
-
-Install these npm packages globally:
+### Dev Setup
 
 ```bash
-npm install -g jira-api-cli
-npm install -g conni-cli
-npm install -g mysqldb-cli
-npm install -g context7-cli
-npm install -g sentry-api-cli
+npm install                    # Install eslint, prettier, husky
+bash install-lint-tools.sh    # Install shellcheck, flake8, black
 ```
 
-### Configuration Setup
-
-Each plugin requires local configuration files that are gitignored:
-
-**For Jira plugin:**
-
-- Create `.claude/atlassian-config.local.md` with Atlassian credentials
-- See `plugins/jira/skills/jira/SKILL.md` for setup instructions
-
-**For Confluence plugin:**
-
-- Create `.claude/atlassian-config.local.md` with Atlassian credentials (same as Jira)
-- See `plugins/confluence/skills/confluence/SKILL.md` for setup instructions
-
-**For SQL plugin:**
-
-- Create `.claude/sql-config.local.md` with database connection details
-- See `plugins/sql/skills/sql/SKILL.md` for setup instructions
-
-**For Google Chat plugin:**
-
-- Create `plugins/google-chat/skills/google-chat/config.jsonc` with API keys
-- See `plugins/google-chat/skills/google-chat/SKILL.md` for setup instructions
-
-**For Context7 plugin:**
-
-- No local config required
-- See `plugins/context7/skills/context7/SKILL.md` for setup instructions
-
-**For Sentry plugin:**
-
-- Create `.claude/sentry-connector.local.md` with Sentry credentials
-- See `plugins/sentry/skills/sentry/SKILL.md` for setup instructions
-
-### Testing Plugins
-
-**Google Chat:**
+### Lint & Format
 
 ```bash
-python scripts/send_message.py --space-id "space_id" --message "Test message"
-python scripts/reply_message.py --thread-name "space/..." --message "Test reply"
+npm run lint       # Run eslint + shellcheck + flake8
+npm run format     # Run prettier + black
+npm run build      # install-lint-tools + lint + format (full CI-equivalent check)
 ```
 
-**Jira:**
-
-```bash
-npx jira-api-cli test-connection
-```
-
-**Confluence:**
-
-```bash
-npx conni-cli test-connection
-```
-
-**SQL:**
-
-```bash
-npx mysqldb-cli query '{"query":"SELECT 1"}'
-```
-
-**Context7:**
-
-```bash
-npx context7-cli resolve-library-id '{"libraryName":"react"}'
-```
-
-**Sentry:**
-
-```bash
-npx sentry-api-cli test-connection
-```
-
-## Release Management
-
-This repository uses **release-please** for automated versioning and releases:
-
-### Commit Message Format
-
-Follow **Conventional Commits** specification:
-
-- `feat:` - New feature
-- `fix:` - Bug fix
-- `docs:` - Documentation changes
-- `refactor:` - Code refactoring
-- `chore:` - Maintenance tasks
-
-Example:
-
-```bash
-git commit -m "feat: add new Context7 documentation search feature"
-```
-
-### Release Process
-
-1. All changes merged to `main` branch
-2. GitHub Action runs release-please automatically
-3. Updates `CHANGELOG.md` and creates GitHub release
-4. Bumps version based on commit messages
-5. Updates version in:
-   - `version.txt`
-   - `.claude-plugin/marketplace.json`
-
-See `release-please-config.json` for release configuration.
-
-## Important Files
-
-- **`README.md`** - Project overview and installation instructions
-- **`CHANGELOG.md`** - Auto-generated release notes
-- **`.gitignore`** - Excludes `*.local.md`, `config.jsonc`, and other sensitive files
-- **`release-please-config.json`** - Release automation configuration
-- **Individual SKILL.md files** - Detailed plugin documentation
-
-## Key Configuration Files (Gitignored)
-
-- **`.claude/*.local.md`** - All local credential files
-- **`config.jsonc`** - Google Chat API configuration
-- **`node_modules/`** - npm dependencies
-- **`.env*`** - Environment variables
-
-## Plugin-Specific Notes
-
-### Google Chat Plugin
-
-- Python scripts require `requests` library: `pip install requests`
-- Uses `config.jsonc` for API keys and space tokens
-- Supports formatted messages (markdown-like syntax)
-- Scripts located in `skills/google-chat/scripts/`
-
-### Jira Plugin
-
-- Uses `jira-api-cli` npm package
-- Responses are large (50KB+), always save to temp files first
-- Helper script: `get-ticket-summary.sh` for quick summaries
-- Requires Atlassian API token
-
-### Confluence Plugin
-
-- Uses `conni-cli` npm package
-- Manages pages, spaces, and comments
-- Supports HTML storage format for page content
-- Shares configuration with Jira plugin (same `.claude/atlassian-config.local.md`)
-- Requires Atlassian API token
-
-### SQL Plugin
-
-- Uses `mysqldb-cli` npm package
-- Supports both MySQL and PostgreSQL
-- Built-in safety features (row limits, destructive operation warnings)
-- Multiple output formats: table, json, csv, toon
-
-### Context7 Plugin
-
-- Uses `context7-cli` npm package
-- Fetches live documentation from Context7 server
-- No local configuration required
-- Supports pagination and topic-specific searches
-
-### Sentry Plugin
-
-- Uses `sentry-api-cli` npm package
-- Query and analyze Sentry issues, events, and projects
-- Requires Sentry auth token with scopes: event:read, issue:read, project:read, org:read
-- Supports multiple output formats (JSON, TOON)
-- Interactive REPL mode for exploratory work
-
-### Terminal Recorder Plugin
-
-- Uses `asciinema` for recording terminal sessions (outputs `.cast` files in asciicast v2 format)
-- Uses `agg` for converting `.cast` files to animated GIF files
-- No API credentials or configuration files required
-- Install via `brew install asciinema` and `cargo install --git https://github.com/asciinema/agg`
-- Use `--idle-time-limit` during recording to trim long pauses before GIF conversion
-- Optionally use `gifsicle` for post-processing GIF optimization
-
-## Security Best Practices
-
-1. **Never commit credential files** - All `*.local.md` and `config.jsonc` are gitignored
-2. **Use API tokens, not passwords** - Especially for Jira
-3. **Enable SSL for remote databases** - Set `ssl: true` in SQL config
-4. **Use read-only users when possible** - For production database access
-5. **Review `.gitignore`** before committing - Ensure sensitive files are excluded
-
-## Common Tasks
+Husky runs pre-commit hooks automatically after `npm install`.
 
 ### Adding a New Plugin
 
-1. Create plugin directory structure:
-
+1. Create the directory structure:
    ```
    plugins/<name>/
      .claude-plugin/plugin.json
-     skills/<name>/
-       SKILL.md
-       scripts/
+     skills/<name>/SKILL.md
+     scripts/        (if needed)
+     hooks/hooks.json  (if needed)
    ```
-
-2. Add plugin to `.claude-plugin/marketplace.json`
-
+2. Add entry to `.claude-plugin/marketplace.json` under `"plugins"`
 3. Document setup and usage in SKILL.md
+4. Run `npm run build` to verify linting passes
 
-4. Test the plugin thoroughly
+## Plugin-Specific Notes
 
-5. Update README.md with new plugin
+### agent-browser Plugin
 
-### Modifying Existing Plugins
+- Requires `agent-browser` CLI installed (`brew install agent-browser` or equivalent)
+- **Memory system** uses two layers: ChromaDB (semantic/vector) + SQLite (structured checkpoints)
+  - Memory stored at `~/.ai-browser-workflow/` (override with `BROWSER_MEMORY_DIR`)
+  - ChromaDB is optional — without it, only SQLite checkpoints are used
+  - Install ChromaDB: `pip install chromadb`
+- **Hooks** in `hooks/hooks.json` fire automatically:
+  - `PreToolUse` — injects relevant memories before `agent-browser open`
+  - `PostToolUse` — updates memories after each `agent-browser` command
+  - `Stop` — extracts session checkpoints and runs memory maintenance
+- Memory CLI for inspection: `python3 scripts/browser_memory.py stats|domains|recall|save|maintain`
 
-- Edit scripts in `skills/<plugin>/scripts/`
-- Update SKILL.md for documentation changes
-- Test changes before committing
-- Follow conventional commit format
+### terminal-recorder Plugin
 
-### Version Bumping
+- Requires `asciinema` and `agg`: `brew install asciinema && cargo install --git https://github.com/asciinema/agg`
+- No API credentials or config files required
+- Use `--idle-time-limit` with asciinema to trim pauses before GIF conversion
+- Optional post-processing: `gifsicle` for GIF optimization
 
-Just merge changes to `main` with proper commit messages - release-please handles the rest!
+## Release Management
+
+Uses **release-please** for automated versioning. All commits to `main` trigger it.
+
+### Commit Format (Conventional Commits)
+
+- `feat:` — new feature (bumps minor)
+- `fix:` — bug fix (bumps patch)
+- `docs:` — documentation only
+- `refactor:` / `chore:` — maintenance
+
+### What Gets Bumped on Release
+
+- `version.txt`
+- `package.json`
+- `.claude-plugin/marketplace.json` (`$.version`)
+
+## Security
+
+- No credential files in this repo — both plugins require no API keys
+- If adding a plugin that needs credentials, use `.claude/*.local.md` (gitignored pattern: `*.local.md`)
