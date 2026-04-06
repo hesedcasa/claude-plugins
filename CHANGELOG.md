@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.1](https://github.com/hesedcasa/claude-plugins/compare/v1.6.0...v1.6.1) (2026-04-06)
+
+
+### 📄 Documentation
+
+* rewrite CLAUDE.md to reflect current repo state ([#14](https://github.com/hesedcasa/claude-plugins/issues/14)) ([9df028b](https://github.com/hesedcasa/claude-plugins/commit/9df028bbf56385abd28ae624b5dfcd3d6e341077))
+
 ## [1.6.0](https://github.com/hesedcasa/claude-plugins/compare/v1.5.0...v1.6.0) (2026-04-04)
 
 
