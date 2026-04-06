@@ -1,5 +1,5 @@
 ---
-name: Terminal Recorder
+name: terminal-recorder
 description: This skill should be used when the user wants to record a terminal session and convert it to an animated GIF. Use when the user says phrases like "record my terminal", "capture terminal session", "create a terminal GIF", "record a demo", "make a terminal recording", "convert cast to GIF", or needs to produce shareable terminal demos.
 allowed-tools: Read, Write, Execute, Bash(asciinema rec:*), Bash(agg:*), Bash(python3:*), Bash(gifsicle:*)
 ---
