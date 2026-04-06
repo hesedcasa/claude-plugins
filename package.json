@@ -1,7 +1,7 @@
 {
   "name": "hesed-plugins",
   "description": "A collection of Claude plugins for common productivity and development workflows",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "author": "Hesed",
   "devDependencies": {
     "eslint": "^9",
